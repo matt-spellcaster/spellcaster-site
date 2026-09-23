@@ -1,0 +1,33 @@
+# Build output and tool caches
+/dist/
+.astro/
+node_modules/
+/playwright-report/
+/test-results/
+/results/
+/evidence/
+*.tsbuildinfo
+.DS_Store
+
+# Terraform: state, real variable values and backend settings (which name the account)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+backend.hcl
+crash.log
+tfplan
+
+# Secrets and local settings never get committed
+.env
+.env.*
+*.pem
+*.key
+
+# Local working notes
+.notes/
+
+# CI outputs
+/dist-manifest.json
+__pycache__/
