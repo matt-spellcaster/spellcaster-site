@@ -31,3 +31,6 @@ tfplan
 # CI outputs
 /dist-manifest.json
 __pycache__/
+
+# Local screenshots (the design gate)
+/tmp/

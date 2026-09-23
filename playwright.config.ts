@@ -5,9 +5,9 @@ export default defineConfig({
   testDir: 'tests/e2e',
   forbidOnly: !!process.env['CI'],
   retries: 0,
-  // More parallel browsers than this starve each other in the dev container (and on
-  // GitHub's 4-vCPU runners): tests that take 1 s at two workers take 15-25 s at five.
-  workers: 2,
+  // One browser at a time: WebKit and Chromium running side by side in the container starve
+  // each other (a 1.6 s axe run took over 30 s). The whole suite takes about 25 s serially.
+  workers: 1,
   reporter: process.env['CI'] ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: { baseURL: 'http://127.0.0.1:4321' },
   projects: [

@@ -1,12 +1,17 @@
 ---
+import { Font } from 'astro:assets';
+import Header from '../components/Header.astro';
 import '../styles/global.css';
 
 interface Props {
   title: string;
   description: string;
+  /** Until the design gate picks one family. */
+  font?: 'inter' | 'geist';
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, font = 'inter', noindex = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
@@ -16,11 +21,40 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0d10" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {font === 'geist' ? (
+      <Font cssVariable="--font-geist" preload />
+    ) : (
+      <Font cssVariable="--font-inter" preload />
+    )}
   </head>
-  <body class="bg-canvas text-ink min-h-dvh antialiased">
-    <slot />
+  <body class:list={['bg-canvas text-ink min-h-dvh antialiased', `font-${font}`]}>
+    <a
+      href="#main"
+      class="bg-accent text-canvas fixed top-2 left-2 z-[60] -translate-y-20 rounded-lg px-4 py-3 text-sm font-medium focus:translate-y-0"
+    >
+      Skip to content
+    </a>
+    <Header />
+    <!-- A soft glow behind the header, so the glass has something to frost. -->
+    <div
+      aria-hidden="true"
+      class="glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem]"
+    ></div>
+    <main id="main" class="mx-auto max-w-5xl px-5 sm:px-8">
+      <slot />
+    </main>
   </body>
 </html>
+
+<style>
+  .glow {
+    background:
+      radial-gradient(40rem 22rem at 18% -4rem, rgb(138 180 248 / 0.16), transparent 70%),
+      radial-gradient(30rem 18rem at 85% 2rem, rgb(92 201 138 / 0.07), transparent 70%);
+  }
+</style>

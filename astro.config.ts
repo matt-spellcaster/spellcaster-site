@@ -2,7 +2,7 @@ import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'astro/config';
+import { defineConfig, fontProviders } from 'astro/config';
 
 // Static site served from S3 + CloudFront. Every page is /path/index.html, and every
 // internal link ends in "/" (the CloudFront function redirects slashless paths).
@@ -11,10 +11,50 @@ export default defineConfig({
   output: 'static',
   trailingSlash: 'always',
   build: { format: 'directory' },
-  integrations: [mdx(), react(), sitemap()],
+  integrations: [mdx(), react(), sitemap({ filter: (page) => !page.includes('/mockup/') })],
+  // Self-hosted from pinned npm packages (no font CDN, so no CSP exception). Latin only.
+  // Both families stay until the design gate picks one (docs/design.md).
+  fonts: [
+    {
+      provider: fontProviders.local(),
+      name: 'Inter',
+      cssVariable: '--font-inter',
+      fallbacks: ['system-ui', 'sans-serif'],
+      options: {
+        variants: [
+          {
+            src: ['@fontsource-variable/inter/files/inter-latin-wght-normal.woff2'],
+            weight: '100 900',
+            style: 'normal',
+          },
+        ],
+      },
+    },
+    {
+      provider: fontProviders.local(),
+      name: 'Geist',
+      cssVariable: '--font-geist',
+      fallbacks: ['system-ui', 'sans-serif'],
+      options: {
+        variants: [
+          {
+            src: ['@fontsource-variable/geist/files/geist-latin-wght-normal.woff2'],
+            weight: '100 900',
+            style: 'normal',
+          },
+        ],
+      },
+    },
+  ],
   // Shiki writes inline style attributes per token; Prism uses classes, which the CSP allows.
   markdown: { syntaxHighlight: 'prism' },
-  vite: { plugins: [tailwindcss()] },
+  vite: {
+    plugins: [tailwindcss()],
+    // Astro builds with target "esnext", so the CSS minifier would assume the newest
+    // browsers and drop -webkit-backdrop-filter, which Safari before 18 needs for the glass.
+    // These are the browsers the site supports (Tailwind 4's own floor).
+    build: { cssTarget: ['chrome111', 'edge111', 'firefox114', 'safari16.4', 'ios16.4'] },
+  },
   security: {
     // Astro writes a <meta http-equiv="content-security-policy"> into every page and adds a
     // hash for each script and style it processes. See CLAUDE.md for what this rules out.
