@@ -1,0 +1,96 @@
+/* The case study body (MDX). Hand-written rather than a typography plugin: it's one page. */
+.case-study > h2 {
+  margin-top: 3.5rem;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--color-ink);
+}
+.case-study > p,
+.case-study > ul {
+  margin-top: 1rem;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: rgb(232 234 237 / 0.9);
+}
+.case-study > ul {
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.case-study li + li {
+  margin-top: 0.5rem;
+}
+.case-study li::marker {
+  color: var(--color-accent);
+}
+.case-study strong {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+/* Links inside text are underlined, so they don't rely on colour alone. */
+.case-study a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.case-study :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875em;
+  padding: 0.1em 0.35em;
+  border-radius: 0.3rem;
+  background: var(--color-surface-2);
+}
+.case-study table {
+  margin-top: 1.25rem;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+.case-study th,
+.case-study td {
+  padding: 0.625rem 0.75rem 0.625rem 0;
+  border-bottom: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+}
+.case-study th {
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+/* Code blocks wrap instead of scrolling sideways (a scroll box would need to be focusable). */
+.case-study pre {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+}
+
+/* Prism tokens: classes only, so the CSP needs no inline styles. */
+.token.comment,
+.token.operator,
+.token.punctuation {
+  color: var(--color-muted);
+}
+.token.function,
+.token.builtin,
+.token.keyword {
+  color: var(--color-accent);
+}
+.token.string {
+  color: var(--color-keep);
+}
+.token.parameter,
+.token.variable,
+.token.number {
+  color: var(--color-decide);
+}

@@ -17,11 +17,16 @@ site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The reposi
    each one either bypasses hashing or needs a CSP exception. Code blocks use Prism. The
    only relaxation is `style-src-attr 'unsafe-inline'`. `tests/unit/repo-rules.test.ts`
    and `tests/dist/` enforce this.
-4. **Design.** Dark only. Frosted glass only on the header and the mobile menu, never on
-   content, with opaque fallbacks for reduced transparency, more contrast and forced colors.
+4. **Design.** Follow `docs/design.md` (approved at the M2 gate): dark only, Inter, accent
+   `#8ab4f8`. Frosted glass only on the header and the mobile menu, never on content, with
+   opaque fallbacks. New colours go in `@theme` in `src/styles/global.css`, where the
+   contrast test sees them.
 5. **Links.** Every internal `href` ends in `/` (for example `/projects/okta-access-review-aws/`).
-6. **Draft copy.** Every piece of text that Matthew hasn't approved yet starts with
-   `DRAFT:`. The launch check fails while any are left.
+6. **Draft copy.** Text Matthew hasn't approved yet starts with `DRAFT:` (on the case study,
+   at the start of each section), and facts only he can supply are `[placeholders]`.
+   `npm run launch-check` fails while any are left, or while the resume or the LinkedIn link
+   is missing. Copy is written in Matthew's voice: plain, short sentences, no dashes, and no
+   claim the linked repositories don't back up.
 7. **Nothing private in git.** No AWS account IDs, `backend.hcl`, `*.tfvars`, Terraform
    state, phone number or home address. CI logs are public too: Terraform prints only its
    plan summary, and role ARNs and the state bucket live in GitHub secrets. The
@@ -35,10 +40,15 @@ site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The reposi
 | `npm run dev` | Dev server at http://localhost:4321/ (`DEV_LAN=1` for a phone on the same Wi-Fi) |
 | `npm run verify` | Everything CI's Build and E2E jobs run: lint, `astro check`, unit tests, build, dist tests, Playwright |
 | `npm run format` | Prettier |
+| `npm run launch-check` | The dist tests plus the launch gate (after `npm run build`) |
+| `node scripts/og-images.ts` | Remakes the committed social images and favicons after a design change |
 
 ## Layout
 
-- `src/pages/`, `src/layouts/`, `src/styles/`: the site.
+- `src/pages/`, `src/layouts/`, `src/components/`, `src/styles/`: the site.
+- `src/data/site.ts`: name, pitch, links and the resume path, in one place.
+- `src/content/projects/`: one entry per project card; the featured one (`.mdx`) is also the
+  case study at `/projects/<id>/`. The schema is in `src/content.config.ts`.
 - `tests/unit/` (source and repository rules), `tests/dist/` (the built `dist/`),
   `tests/e2e/` (Playwright + axe on Desktop Chrome, iPhone WebKit and Pixel).
 - `.devcontainer/Dockerfile`: Node and Playwright versions must match `.node-version` and

@@ -11,9 +11,8 @@ export default defineConfig({
   output: 'static',
   trailingSlash: 'always',
   build: { format: 'directory' },
-  integrations: [mdx(), react(), sitemap({ filter: (page) => !page.includes('/mockup/') })],
+  integrations: [mdx(), react(), sitemap()],
   // Self-hosted from pinned npm packages (no font CDN, so no CSP exception). Latin only.
-  // Both families stay until the design gate picks one (docs/design.md).
   fonts: [
     {
       provider: fontProviders.local(),
@@ -24,21 +23,6 @@ export default defineConfig({
         variants: [
           {
             src: ['@fontsource-variable/inter/files/inter-latin-wght-normal.woff2'],
-            weight: '100 900',
-            style: 'normal',
-          },
-        ],
-      },
-    },
-    {
-      provider: fontProviders.local(),
-      name: 'Geist',
-      cssVariable: '--font-geist',
-      fallbacks: ['system-ui', 'sans-serif'],
-      options: {
-        variants: [
-          {
-            src: ['@fontsource-variable/geist/files/geist-latin-wght-normal.woff2'],
             weight: '100 900',
             style: 'normal',
           },

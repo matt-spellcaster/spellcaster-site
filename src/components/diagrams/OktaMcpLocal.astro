@@ -1,0 +1,54 @@
+---
+// From okta-mcp-local's README, "How it works": Claude talks to run.sh over stdio, run.sh
+// reads the key from 1Password and starts the pinned server, which signs a JWT for Okta.
+---
+
+<!-- prettier-ignore -->
+<svg
+  viewBox="0 0 320 170"
+  role="img"
+  aria-labelledby="okta-mcp-local-title okta-mcp-local-desc"
+  class="h-auto w-full"
+>
+  <title id="okta-mcp-local-title">How okta-mcp-local works</title>
+  <desc id="okta-mcp-local-desc">
+    Claude talks to run.sh over stdio. run.sh reads the private key from 1Password, with your
+    approval, and starts the pinned Okta MCP server, which signs in to Okta with a signed JWT. Okta
+    limits it with scopes, an admin role and a network zone.
+  </desc>
+  <g class="fill-surface-2 stroke-[#394150]" stroke-width="1">
+    <rect x="1" y="30" width="66" height="36" rx="8"></rect>
+    <rect x="85" y="30" width="66" height="36" rx="8"></rect>
+    <rect x="169" y="30" width="66" height="36" rx="8"></rect>
+    <rect x="253" y="30" width="66" height="36" rx="8"></rect>
+    <rect x="77" y="112" width="82" height="36" rx="8"></rect>
+  </g>
+  <g class="fill-ink" font-size="10.5" font-weight="500" text-anchor="middle">
+    <text x="34" y="52">Claude</text>
+    <text x="118" y="52">run.sh</text>
+    <text x="202" y="52">MCP server</text>
+    <text x="286" y="52">Okta</text>
+    <text x="118" y="134">1Password</text>
+  </g>
+  <g class="fill-muted" font-size="9" text-anchor="middle">
+    <text x="76" y="22">stdio</text>
+    <text x="244" y="22">signed JWT</text>
+    <text x="202" y="84">pinned</text>
+    <text x="286" y="84">scopes, role,</text>
+    <text x="286" y="96">network zone</text>
+    <text x="202" y="126">key, only</text>
+    <text x="202" y="138">with approval</text>
+  </g>
+  <g class="stroke-accent" stroke-width="1.5" fill="none">
+    <path d="M67 48 H81"></path>
+    <path d="M151 48 H165"></path>
+    <path d="M235 48 H249"></path>
+    <path d="M118 112 V70"></path>
+  </g>
+  <g class="fill-accent">
+    <polygon points="84,48 78,44.5 78,51.5"></polygon>
+    <polygon points="168,48 162,44.5 162,51.5"></polygon>
+    <polygon points="252,48 246,44.5 246,51.5"></polygon>
+    <polygon points="118,67 114.5,73 121.5,73"></polygon>
+  </g>
+</svg>

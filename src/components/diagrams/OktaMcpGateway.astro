@@ -1,0 +1,61 @@
+---
+// From okta-mcp-gateway's README, "How it works": the gateway runs the server in a container
+// whose only way out is a sidecar to one Okta org; an interceptor logs every call (and blocks
+// it if it can't); reconcile.py checks that log against Okta's System Log.
+---
+
+<!-- prettier-ignore -->
+<svg
+  viewBox="0 0 320 170"
+  role="img"
+  aria-labelledby="okta-mcp-gateway-title okta-mcp-gateway-desc"
+  class="h-auto w-full"
+>
+  <title id="okta-mcp-gateway-title">How okta-mcp-gateway works</title>
+  <desc id="okta-mcp-gateway-desc">
+    Claude Code calls Docker MCP Gateway, which runs the Okta MCP server in a container that can
+    only reach one Okta org. Every call is written to a hash-chained audit log first; if it can't be
+    logged, it doesn't run. reconcile.py compares the audit log with Okta's System Log.
+  </desc>
+  <g class="fill-surface-2 stroke-[#394150]" stroke-width="1">
+    <rect x="1" y="24" width="66" height="36" rx="8"></rect>
+    <rect x="85" y="24" width="66" height="36" rx="8"></rect>
+    <rect x="169" y="24" width="66" height="36" rx="8"></rect>
+    <rect x="253" y="24" width="66" height="36" rx="8"></rect>
+    <rect x="77" y="112" width="82" height="36" rx="8"></rect>
+    <rect x="211" y="112" width="108" height="36" rx="8"></rect>
+  </g>
+  <g class="fill-ink" font-size="10.5" font-weight="500" text-anchor="middle">
+    <text x="34" y="46">Claude</text>
+    <text x="118" y="46">Gateway</text>
+    <text x="202" y="46">MCP server</text>
+    <text x="286" y="46">Okta</text>
+    <text x="118" y="134">Audit log</text>
+    <text x="265" y="134">reconcile.py</text>
+  </g>
+  <g class="fill-muted" font-size="9" text-anchor="middle">
+    <text x="202" y="76">container,</text>
+    <text x="202" y="88">one host out</text>
+    <text x="118" y="164">hash-chained</text>
+    <text x="280" y="88" text-anchor="end">System</text>
+    <text x="280" y="100" text-anchor="end">Log</text>
+    <text x="64" y="96">logged first,</text>
+    <text x="64" y="108">or blocked</text>
+  </g>
+  <g class="stroke-accent" stroke-width="1.5" fill="none">
+    <path d="M67 42 H81"></path>
+    <path d="M151 42 H165"></path>
+    <path d="M235 42 H249"></path>
+    <path d="M118 60 V108"></path>
+    <path d="M159 130 H207"></path>
+    <path d="M286 60 V108"></path>
+  </g>
+  <g class="fill-accent">
+    <polygon points="84,42 78,38.5 78,45.5"></polygon>
+    <polygon points="168,42 162,38.5 162,45.5"></polygon>
+    <polygon points="252,42 246,38.5 246,45.5"></polygon>
+    <polygon points="118,111 114.5,105 121.5,105"></polygon>
+    <polygon points="210,130 204,126.5 204,133.5"></polygon>
+    <polygon points="286,111 282.5,105 289.5,105"></polygon>
+  </g>
+</svg>

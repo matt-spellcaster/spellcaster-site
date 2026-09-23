@@ -1,9 +1,13 @@
 @import 'tailwindcss';
 @import './glass.css';
+@import './prose.css';
 
 /* Dark only. tests/unit/contrast.test.ts checks every text colour against every surface,
    and against the header glass with a white image behind it. */
 @theme {
+  /* Inter, self-hosted through the Fonts API (astro.config.ts). */
+  --font-sans: var(--font-inter);
+
   --color-canvas: #0b0d10;
   --color-surface: #12151a;
   --color-surface-2: #1a1e24;
@@ -22,12 +26,4 @@
   color-scheme: dark;
   /* In-page links land below the fixed header. */
   scroll-padding-top: 5rem;
-}
-
-/* The mockup compares both families; the chosen one stays after the design gate. */
-.font-inter {
-  font-family: var(--font-inter);
-}
-.font-geist {
-  font-family: var(--font-geist);
 }

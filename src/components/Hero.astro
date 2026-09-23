@@ -2,8 +2,8 @@
 import { site } from '../data/site';
 
 const links = [
-  { label: 'Resume (PDF)', href: site.resume, primary: true },
-  { label: 'GitHub', href: site.github, primary: false },
+  ...(site.resume ? [{ label: 'Resume (PDF)', href: site.resume, primary: true }] : []),
+  { label: 'GitHub', href: site.github, primary: !site.resume },
   ...(site.linkedin ? [{ label: 'LinkedIn', href: site.linkedin, primary: false }] : []),
   { label: 'Email', href: `mailto:${site.email}`, primary: false },
 ];

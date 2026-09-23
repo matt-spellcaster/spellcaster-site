@@ -15,6 +15,11 @@ if ! docker image inspect "$image" > /dev/null 2>&1; then
   docker build --tag "$image" .devcontainer
 fi
 
+# Astro records a running dev or preview server in .astro/*.json by PID. Each container has
+# its own PIDs and network, so a lock left by another (or a killed) container means nothing
+# here, and a reused PID would make Astro refuse to start.
+rm -f .astro/dev.json .astro/preview.json
+
 # One node_modules volume per checkout, so clones and worktrees don't share installs.
 volume="spellcaster-site-node-modules-$(printf '%s' "$root" | shasum -a 256 | cut -c1-12)"
 args=(--rm --init --cap-drop=ALL --security-opt=no-new-privileges --shm-size=1g

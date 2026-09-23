@@ -1,15 +1,30 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
-// Every built page. The mockup pages go away after the design gate.
-const PAGES = ['/', '/mockup/inter/', '/mockup/geist/'];
-const WITH_HEADER = '/mockup/inter/';
+// Every built page, with its h1. A path that doesn't exist gets the 404 page.
+const PAGES: [string, string][] = [
+  ['/', 'Matthew Spell'],
+  ['/projects/okta-access-review-aws/', 'Okta access review in AWS'],
+  ['/no-such-page/', 'Page not found'],
+];
+const WITH_HEADER = '/';
+const CASE_STUDY = '/projects/okta-access-review-aws/';
 
 async function collectProblems(page: Page): Promise<string[]> {
   const problems: string[] = [];
   page.on('console', (msg) => {
-    if (msg.type() === 'error') problems.push(msg.text());
+    // Failed loads are checked from the responses below, so the 404 page's own status
+    // (which browsers also log here) doesn't count.
+    if (msg.type() === 'error' && !msg.text().startsWith('Failed to load resource')) {
+      problems.push(msg.text());
+    }
   });
+  page.on('response', (response) => {
+    if (response.status() >= 400 && response.request().resourceType() !== 'document') {
+      problems.push(`${response.status()} ${response.url()}`);
+    }
+  });
+  page.on('requestfailed', (request) => problems.push(`failed ${request.url()}`));
   page.on('pageerror', (err) => problems.push(err.message));
   await page.addInitScript(() => {
     document.addEventListener('securitypolicyviolation', (e) =>
@@ -19,12 +34,12 @@ async function collectProblems(page: Page): Promise<string[]> {
   return problems;
 }
 
-for (const path of PAGES) {
+for (const [path, h1] of PAGES) {
   test.describe(path, () => {
     test('loads with no console errors or CSP violations', async ({ page }) => {
       const problems = await collectProblems(page);
       await page.goto(path);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText('Matthew Spell');
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(h1);
       await expect(page.locator('meta[http-equiv="content-security-policy"]')).toHaveCount(1);
       await page.waitForLoadState('networkidle');
       // Scroll to the bottom so lazy images load under the CSP too.
@@ -125,5 +140,26 @@ test.describe('mobile menu', () => {
     await page.getByRole('button', { name: 'Menu' }).click();
     await sheet.getByRole('link', { name: 'Work' }).click();
     await expect(sheet).toBeHidden();
+  });
+});
+
+test.describe('case study', () => {
+  test('the summary, the three bullets and both links fit the first mobile screen', async ({
+    page,
+  }, testInfo) => {
+    test.skip(!testInfo.project.use.isMobile, 'a phone-sized check');
+    await page.goto(CASE_STUDY);
+    const viewport = page.viewportSize()?.height ?? 0;
+    const links = page.locator('#summary').getByRole('link');
+    await expect(links).toHaveCount(2);
+    for (const link of await links.all()) {
+      const box = await link.boundingBox();
+      expect(box && box.y + box.height).toBeLessThanOrEqual(viewport);
+    }
+  });
+
+  test('a missing page returns 404', async ({ page }) => {
+    const response = await page.goto('/no-such-page/');
+    expect(response?.status()).toBe(404);
   });
 });

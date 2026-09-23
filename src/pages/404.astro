@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Page not found | Matthew Spell"
+  description="There's no page at this address."
+  ogImage="/og/home.png"
+  ogImageAlt="Matthew Spell: IAM and IT systems engineering portfolio"
+  noindex
+>
+  <section class="pt-32 pb-24 sm:pt-44">
+    <p class="text-accent text-sm font-medium">404</p>
+    <h1 class="text-ink mt-2 text-3xl font-semibold tracking-tight sm:text-5xl">Page not found</h1>
+    <p class="text-muted mt-4 text-lg">There's no page at this address.</p>
+    <a
+      href="/"
+      class="bg-accent text-canvas hover:bg-ink mt-8 inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"
+    >
+      Go to the home page
+    </a>
+  </section>
+</Base>

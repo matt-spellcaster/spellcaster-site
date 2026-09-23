@@ -1,0 +1,41 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import OktaMcpGateway from './diagrams/OktaMcpGateway.astro';
+import OktaMcpLocal from './diagrams/OktaMcpLocal.astro';
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+}
+
+const { title, summary, repo, cover, coverAlt, diagram } = Astro.props.project.data;
+---
+
+<article class="border-line bg-surface flex flex-col overflow-hidden rounded-xl border">
+  <div class="border-line bg-surface-2 aspect-[16/10] overflow-hidden border-b">
+    {cover ? (
+      <Image
+        src={cover}
+        widths={[400, 800]}
+        sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, calc(100vw - 2.5rem)"
+        alt={coverAlt ?? ''}
+        class="h-full w-full object-cover object-top"
+      />
+    ) : (
+      <div class="flex h-full items-center px-4">
+        {diagram === 'okta-mcp-local' && <OktaMcpLocal />}
+        {diagram === 'okta-mcp-gateway' && <OktaMcpGateway />}
+      </div>
+    )}
+  </div>
+  <div class="flex flex-1 flex-col p-5">
+    <h3 class="text-ink font-semibold">{title}</h3>
+    <p class="text-muted mt-2 flex-1 text-sm leading-relaxed">{summary}</p>
+    <a
+      href={repo}
+      class="text-accent mt-4 inline-flex min-h-11 items-center text-sm font-medium hover:underline"
+    >
+      Code on GitHub<span class="sr-only">: {title}</span>
+    </a>
+  </div>
+</article>
