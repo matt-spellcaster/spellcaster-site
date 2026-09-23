@@ -7,8 +7,10 @@ FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35
 # Must equal @playwright/test in package.json (a unit test checks).
 ARG PLAYWRIGHT_VERSION=1.63.0
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-# No usage data leaves the container.
-ENV ASTRO_TELEMETRY_DISABLED=1
+# No usage data leaves the container, and no daily "is there a newer Astro?" call: versions are
+# pinned and Dependabot proposes updates. That check also writes .astro/settings.json, which
+# (with Docker Desktop's file sharing) restarted the dev server.
+ENV ASTRO_TELEMETRY_DISABLED=1 ASTRO_DISABLE_UPDATE_CHECK=true
 
 # Chromium and WebKit plus their system libraries, for the E2E projects.
 RUN npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium webkit \

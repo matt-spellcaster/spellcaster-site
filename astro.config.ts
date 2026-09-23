@@ -10,6 +10,11 @@ export default defineConfig({
   site: 'https://spellcaster.foo',
   output: 'static',
   trailingSlash: 'always',
+  // Here rather than as CLI flags: a dev-server restart re-reads this file but drops the flags,
+  // and fell back to Vite's port 5173, which scripts/dev.sh doesn't publish. host: true
+  // listens on every interface inside the container; dev.sh publishes only 127.0.0.1 unless
+  // DEV_LAN=1.
+  server: { host: true, port: 4321 },
   build: { format: 'directory' },
   integrations: [mdx(), react(), sitemap()],
   // Self-hosted from pinned npm packages (no font CDN, so no CSP exception). Latin only.

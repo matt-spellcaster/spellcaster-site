@@ -8,9 +8,9 @@
     "node": ">=24.21.0 <25"
   },
   "scripts": {
-    "dev": "astro dev --host 0.0.0.0 --port 4321",
+    "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview --host 0.0.0.0 --port 4321",
+    "preview": "astro preview",
     "check": "astro check",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
