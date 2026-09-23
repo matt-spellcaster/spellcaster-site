@@ -2,7 +2,7 @@
 # repository and a node_modules volume, never ~/.aws, gh, SSH keys or 1Password, so a
 # malicious dependency can't reach cloud or GitHub sessions.
 # Node matches .node-version (a unit test checks). Dependabot bumps the digest.
-FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6
+FROM node:25-bookworm-slim@sha256:81db02c4b671288a03915da9534dbd54f96d0e7c24d80ccc54f5b36b2e684370
 
 # Must equal @playwright/test in package.json (a unit test checks).
 ARG PLAYWRIGHT_VERSION=1.63.0
