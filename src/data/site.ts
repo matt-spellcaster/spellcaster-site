@@ -17,8 +17,7 @@ export const site = {
     'DRAFT: I’m an IAM and IT systems engineer, and I build tooling around Okta and AWS: access reviews, offboarding checks, and governed access for AI assistants. Every project here links to its code and the CI checks it passes.',
   email: 'hello@spellcaster.foo',
   github: 'https://github.com/matt-spellcaster',
-  // null until the URL is confirmed; the launch check requires it.
-  linkedin: null as string | null,
+  linkedin: 'https://www.linkedin.com/in/matthew-spell-065b9483/' as string | null,
   // Linked only once the PDF is in public/; the launch check requires it.
   resume: existsSync(`public${RESUME}`) ? RESUME : null,
   repo: 'https://github.com/matt-spellcaster/spellcaster-site',
