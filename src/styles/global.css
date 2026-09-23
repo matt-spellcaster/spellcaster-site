@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+
+/* Dark only. The full palette and the header glass arrive with the M2 mockup. */
+@theme {
+  --color-canvas: #0b0d10;
+  --color-ink: #e8eaed;
+  --color-muted: #a3aab5;
+}
+
+:root {
+  color-scheme: dark;
+}
