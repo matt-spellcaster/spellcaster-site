@@ -8,6 +8,13 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # typescript-eslint and @astrojs/check don't support TypeScript 7 yet.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # Node's types follow the Node major in .node-version (24, the LTS line).
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       npm:
         patterns: ['*']
@@ -28,5 +35,10 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # Stay on the Node 24 LTS line; moving to Node 26 is a deliberate change (with
+      # .node-version and @types/node), not a weekly bump.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
 
   # Terraform (provider lock files in infra/) is added with the first Terraform root in M4.
