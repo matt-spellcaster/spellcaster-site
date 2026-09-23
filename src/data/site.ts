@@ -13,8 +13,7 @@ export const site = {
   name: 'Matthew Spell',
   // The optional line under the name. null hides it; it never blocks a launch.
   jobTitle: null as string | null,
-  pitch:
-    'DRAFT: I’m an IAM and IT systems engineer, and I build tooling around Okta and AWS: access reviews, offboarding checks, and governed access for AI assistants. Every project here links to its code and the CI checks it passes.',
+  pitch: "I work in identity and IT. These are a few things I've built.",
   email: 'hello@spellcaster.foo',
   github: 'https://github.com/matt-spellcaster',
   linkedin: 'https://www.linkedin.com/in/matthew-spell-065b9483/' as string | null,
