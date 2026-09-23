@@ -1,0 +1,32 @@
+# Weekly update pull requests. Each one goes through the Compliance workflow like any
+# other change, and the 7-day cooldown matches .npmrc's min-release-age.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      npm:
+        patterns: ['*']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: docker # the dev container's Node image, pinned by digest
+    directory: /.devcontainer
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  # Terraform (provider lock files in infra/) is added with the first Terraform root in M4.
