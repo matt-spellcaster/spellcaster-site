@@ -1,0 +1,23 @@
+---
+// A link styled as one of the site's two buttons. Kept in one place so they can't drift.
+interface Props {
+  href: string;
+  variant?: 'primary' | 'secondary';
+  class?: string;
+}
+
+const { href, variant = 'secondary', class: className } = Astro.props;
+---
+
+<a
+  href={href}
+  class:list={[
+    'inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium transition-colors',
+    variant === 'primary'
+      ? 'bg-accent text-canvas hover:bg-ink'
+      : 'border-line text-ink hover:bg-surface-2 border',
+    className,
+  ]}
+>
+  <slot />
+</a>

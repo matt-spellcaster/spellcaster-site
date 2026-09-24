@@ -39,6 +39,34 @@ export default defineConfig({
   markdown: { syntaxHighlight: 'prism' },
   vite: {
     plugins: [tailwindcss()],
+    // With DEV_LAN=1 anyone on the Wi-Fi can ask the dev server for a file, so it serves only
+    // what the site is built from. The deny list is a second layer for private files, even
+    // inside those folders (it mirrors .gitignore and .githooks/pre-commit, plus Vite's own).
+    server: {
+      fs: {
+        allow: ['src', 'public', 'node_modules', '.astro'],
+        deny: [
+          '.env',
+          '.env.*',
+          '*.{crt,pem,key,p8,p12}',
+          '*.tfvars',
+          '*.tfvars.json',
+          '*.tfbackend',
+          '*backend*.hcl',
+          '*.tfstate',
+          '*.tfstate.*',
+          'tfplan',
+          '*.tfplan',
+          'plan.out',
+          'crash.log',
+          '.mcp.json',
+          '**/.git/**',
+          '**/.terraform/**',
+          '**/.notes/**',
+          '**/.claude/**',
+        ],
+      },
+    },
     // Astro builds with target "esnext", so the CSS minifier would assume the newest
     // browsers and drop -webkit-backdrop-filter, which Safari before 18 needs for the glass.
     // These are the browsers the site supports (Tailwind 4's own floor).

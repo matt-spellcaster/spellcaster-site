@@ -24,6 +24,9 @@ def load_results(results: Path) -> dict[str, dict]:
     found = {}
     for path in sorted(results.rglob("*.result.json")):
         record = json.loads(path.read_text())
+        if record["check"] in found:
+            # Two results for one check: neither can be trusted, so a pass can't hide a fail.
+            record = {**record, "status": "fail", "detail": f"recorded more than once (again in {path.parent.name})"}
         found[record["check"]] = record
     return found
 
@@ -79,9 +82,9 @@ def main(argv: list[str] | None = None) -> int:
     (args.out / "summary.md").write_text(summary)
 
     files = {
-        str(path.relative_to(args.out)): hashlib.sha256(path.read_bytes()).hexdigest()
+        path.relative_to(args.out).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(args.out.rglob("*"))
-        if path.is_file() and path.name != "manifest.json"
+        if path.is_file() and path != args.out / "manifest.json"  # every file but this one
     }
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),

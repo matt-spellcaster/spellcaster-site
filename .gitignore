@@ -9,21 +9,34 @@ node_modules/
 *.tsbuildinfo
 .DS_Store
 
-# Terraform: state, real variable values and backend settings (which name the account)
+# Terraform: state, plans, real variable values and backend settings (which name the account)
 .terraform/
 *.tfstate
 *.tfstate.*
 *.tfvars
+*.tfvars.json
 !*.tfvars.example
+*.tfbackend
 backend.hcl
-crash.log
 tfplan
+*.tfplan
+plan.out
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
 
 # Secrets and local settings never get committed
 .env
 .env.*
 *.pem
 *.key
+*.p8
+*.p12
 
 # Local working notes
 .notes/

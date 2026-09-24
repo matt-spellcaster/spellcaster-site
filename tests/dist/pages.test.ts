@@ -46,15 +46,38 @@ describe('built pages', () => {
     it('has exactly one CSP meta tag, with our directives', () => {
       expect(html.match(/<meta http-equiv="content-security-policy"/gi) ?? []).toHaveLength(1);
       const policy = cspOf(html);
+      // Every directive, exactly: a new host, data: or 'unsafe-eval' anywhere fails here.
+      const hashes = (name: string) =>
+        (policy.get(name) ?? []).map((s) => (/^'sha256-[A-Za-z0-9+/]+=*'$/.test(s) ? 'hash' : s));
+      expect([...policy.keys()].sort()).toEqual(
+        [
+          'base-uri',
+          'connect-src',
+          'default-src',
+          'font-src',
+          'form-action',
+          'img-src',
+          'object-src',
+          'script-src',
+          'style-src',
+          'style-src-attr',
+          'style-src-elem',
+        ].sort(),
+      );
       expect(policy.get('default-src')).toEqual(["'self'"]);
+      expect(policy.get('img-src')).toEqual(["'self'", 'data:']);
+      expect(policy.get('font-src')).toEqual(["'self'"]);
+      expect(policy.get('connect-src')).toEqual(["'self'"]);
       expect(policy.get('object-src')).toEqual(["'none'"]);
       expect(policy.get('base-uri')).toEqual(["'none'"]);
       expect(policy.get('form-action')).toEqual(["'none'"]);
+      expect(policy.get('style-src')).toEqual(["'self'"]);
+      // Scripts and stylesheets: this site's files plus Astro's hashes, nothing else.
+      for (const name of ['script-src', 'style-src-elem']) {
+        expect(new Set(hashes(name)), name).toEqual(new Set(["'self'", 'hash']));
+      }
       // The one relaxation is inline style="" attributes. Anywhere else, 'unsafe-inline'
       // would switch off hashing for scripts or stylesheets.
-      for (const [name, sources] of policy) {
-        if (name !== 'style-src-attr') expect(sources, name).not.toContain("'unsafe-inline'");
-      }
       expect(policy.get('style-src-attr')).toEqual(["'unsafe-inline'"]);
     });
 
@@ -91,6 +114,22 @@ describe('built pages', () => {
         return !!fragment && !readFileSync(file, 'utf8').includes(`id="${fragment}"`);
       });
       expect(broken).toEqual([]);
+    });
+
+    it('same-page #fragments resolve (the skip link, for one)', () => {
+      const fragments = [...html.matchAll(/<a\b[^>]*\bhref="#([^"]+)"/g)].map((m) => m[1]);
+      expect(fragments.filter((f) => !html.includes(`id="${f}"`))).toEqual([]);
+    });
+
+    it('every image src and srcset URL is in dist/', () => {
+      const urls = [...html.matchAll(/<(?:img|source)\b[^>]*>/g)]
+        .flatMap(([tag]) => [
+          /\bsrc="([^"]+)"/.exec(tag)?.[1],
+          ...(/\bsrcset="([^"]+)"/.exec(tag)?.[1] ?? '').split(',').map((c) => c.trim().split(/\s+/)[0]),
+        ])
+        .filter((url): url is string => !!url && url.startsWith('/'));
+      expect(urls.length).toBeGreaterThanOrEqual(page === '404.html' ? 0 : 1);
+      expect(urls.filter((url) => !existsSync(join(DIST, decodeURI(url.split('?')[0] ?? ''))))).toEqual([]);
     });
 
     it.runIf(page !== '404.html')('has a title, description, canonical and Open Graph image', () => {
@@ -151,7 +190,23 @@ describe.runIf(process.env['LAUNCH_CHECK'] === '1')('launch check', () => {
   });
 
   it('no [placeholders] are left in the copy', () => {
-    const left = pages.filter((p) => /\[(N|role|company|what else)\]/.test(readFileSync(join(DIST, p), 'utf8')));
+    // Any bracketed text a person or a crawler reads: the page text, alt and title text,
+    // meta content (descriptions, OG alt text) and the JSON-LD's strings. Code blocks, styles
+    // and class names are left out, since brackets are normal there.
+    const strings = (value: unknown): string[] =>
+      typeof value === 'string' ? [value] : Object.values(value ?? {}).flatMap(strings);
+    const copy = (html: string) => [
+      html.replace(/<(script|style|pre)\b[\s\S]*?<\/\1>/g, ' ').replace(/<[^>]+>/g, ' '),
+      ...[...html.matchAll(/\s(?:alt|title|aria-label|content)="([^"]*)"/g)].map((m) => m[1] ?? ''),
+      ...[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].flatMap(
+        (m) => strings(JSON.parse(m[1] ?? 'null')),
+      ),
+    ];
+    const left = pages.flatMap((p) =>
+      copy(readFileSync(join(DIST, p), 'utf8')).flatMap((text) =>
+        [...text.matchAll(/\[[^\]\n]{1,80}\]/g)].map((m) => `${p}: ${m[0]}`),
+      ),
+    );
     expect(left).toEqual([]);
   });
 

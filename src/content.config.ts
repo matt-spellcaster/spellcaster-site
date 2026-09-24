@@ -25,7 +25,11 @@ const projects = defineCollection({
         sampleReport: z.url().optional(),
       })
       .refine((p) => !p.cover || p.coverAlt, 'a cover needs coverAlt')
-      .refine((p) => p.cover || p.diagram, 'a card needs a cover or a diagram'),
+      .refine((p) => p.cover || p.diagram, 'a card needs a cover or a diagram')
+      .refine(
+        (p) => !p.featured || (p.cover && p.shows),
+        'the featured project needs a cover and shows',
+      ),
 });
 
 export const collections = { projects };

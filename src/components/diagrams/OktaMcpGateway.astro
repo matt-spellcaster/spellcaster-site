@@ -2,11 +2,12 @@
 // From okta-mcp-gateway's README, "How it works": the gateway runs the server in a container
 // whose only way out is a sidecar to one Okta org; an interceptor logs every call (and blocks
 // it if it can't); reconcile.py checks that log against Okta's System Log.
+// Drawn 240 wide, about the narrowest a card shows it (at 640px), so 11-unit text stays 11px.
 ---
 
 <!-- prettier-ignore -->
 <svg
-  viewBox="0 0 320 170"
+  viewBox="0 0 240 160"
   role="img"
   aria-labelledby="okta-mcp-gateway-title okta-mcp-gateway-desc"
   class="h-auto w-full"
@@ -17,45 +18,42 @@
     only reach one Okta org. Every call is written to a hash-chained audit log first; if it can't be
     logged, it doesn't run. reconcile.py compares the audit log with Okta's System Log.
   </desc>
-  <g class="fill-surface-2 stroke-[#394150]" stroke-width="1">
-    <rect x="1" y="24" width="66" height="36" rx="8"></rect>
-    <rect x="85" y="24" width="66" height="36" rx="8"></rect>
-    <rect x="169" y="24" width="66" height="36" rx="8"></rect>
-    <rect x="253" y="24" width="66" height="36" rx="8"></rect>
-    <rect x="77" y="112" width="82" height="36" rx="8"></rect>
-    <rect x="211" y="112" width="108" height="36" rx="8"></rect>
+  <g class="fill-surface-2 stroke-line-strong" stroke-width="1">
+    <rect x="1" y="20" width="70" height="32" rx="7"></rect>
+    <rect x="85" y="20" width="70" height="32" rx="7"></rect>
+    <rect x="169" y="20" width="70" height="32" rx="7"></rect>
+    <rect x="1" y="98" width="70" height="32" rx="7"></rect>
+    <rect x="85" y="98" width="70" height="32" rx="7"></rect>
+    <rect x="169" y="98" width="70" height="32" rx="7"></rect>
   </g>
-  <g class="fill-ink" font-size="10.5" font-weight="500" text-anchor="middle">
-    <text x="34" y="46">Claude</text>
-    <text x="118" y="46">Gateway</text>
-    <text x="202" y="46">MCP server</text>
-    <text x="286" y="46">Okta</text>
-    <text x="118" y="134">Audit log</text>
-    <text x="265" y="134">reconcile.py</text>
+  <g class="fill-ink" font-size="11" font-weight="500" text-anchor="middle">
+    <text x="36" y="40">Claude</text>
+    <text x="120" y="40">Gateway</text>
+    <text x="204" y="40">MCP server</text>
+    <text x="36" y="118">Audit log</text>
+    <text x="120" y="118">reconcile.py</text>
+    <text x="204" y="118">Okta</text>
   </g>
-  <g class="fill-muted" font-size="9" text-anchor="middle">
-    <text x="202" y="76">container,</text>
-    <text x="202" y="88">one host out</text>
-    <text x="118" y="164">hash-chained</text>
-    <text x="280" y="88" text-anchor="end">System</text>
-    <text x="280" y="100" text-anchor="end">Log</text>
-    <text x="64" y="96">logged first,</text>
-    <text x="64" y="108">or blocked</text>
+  <g class="fill-muted" font-size="11" text-anchor="middle">
+    <text x="198" y="66" text-anchor="end">one host out</text>
+    <text x="44" y="89" text-anchor="start">logged first, or blocked</text>
+    <text x="38" y="145">hash-chained</text>
+    <text x="162" y="145">System Log</text>
   </g>
   <g class="stroke-accent" stroke-width="1.5" fill="none">
-    <path d="M67 42 H81"></path>
-    <path d="M151 42 H165"></path>
-    <path d="M235 42 H249"></path>
-    <path d="M118 60 V108"></path>
-    <path d="M159 130 H207"></path>
-    <path d="M286 60 V108"></path>
+    <path d="M71 36 H81"></path>
+    <path d="M155 36 H165"></path>
+    <path d="M120 52 V72 H36 V94"></path>
+    <path d="M204 52 V94"></path>
+    <path d="M71 114 H81"></path>
+    <path d="M169 114 H159"></path>
   </g>
   <g class="fill-accent">
-    <polygon points="84,42 78,38.5 78,45.5"></polygon>
-    <polygon points="168,42 162,38.5 162,45.5"></polygon>
-    <polygon points="252,42 246,38.5 246,45.5"></polygon>
-    <polygon points="118,111 114.5,105 121.5,105"></polygon>
-    <polygon points="210,130 204,126.5 204,133.5"></polygon>
-    <polygon points="286,111 282.5,105 289.5,105"></polygon>
+    <polygon points="84,36 78,32.5 78,39.5"></polygon>
+    <polygon points="168,36 162,32.5 162,39.5"></polygon>
+    <polygon points="36,97 32.5,91 39.5,91"></polygon>
+    <polygon points="204,97 200.5,91 207.5,91"></polygon>
+    <polygon points="84,114 78,110.5 78,117.5"></polygon>
+    <polygon points="156,114 162,110.5 162,117.5"></polygon>
   </g>
 </svg>

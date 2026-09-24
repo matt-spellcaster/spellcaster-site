@@ -17,6 +17,10 @@ interface Props {
 
 const { src, alt, caption, light = false, narrow = false, widths = [480, 800, 1200] } = Astro.props;
 const usable = widths.filter((w) => w <= src.width);
+// A narrow figure is max-w-sm (24rem, 384px) less the frame's padding and border.
+const sizes = narrow
+  ? '(min-width: 424px) 366px, calc(100vw - 2.5rem)'
+  : '(min-width: 768px) 720px, calc(100vw - 2.5rem)';
 ---
 
 <figure class:list={['my-8', narrow && 'max-w-sm']}>
@@ -27,12 +31,20 @@ const usable = widths.filter((w) => w <= src.width);
     ]}
   >
     {src.format === 'svg' ? (
-      <img src={src.src} width={src.width} height={src.height} alt={alt} class="h-auto w-full" />
+      <img
+        src={src.src}
+        width={src.width}
+        height={src.height}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        class="h-auto w-full"
+      />
     ) : (
       <Image
         src={src}
         widths={usable.length ? usable : [src.width]}
-        sizes="(min-width: 768px) 720px, calc(100vw - 2.5rem)"
+        sizes={sizes}
         alt={alt}
         class="h-auto w-full rounded-lg"
       />

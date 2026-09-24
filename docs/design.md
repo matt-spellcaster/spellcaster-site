@@ -24,13 +24,16 @@ Defined once in `src/styles/global.css` (`@theme`), and checked by `tests/unit/c
 | `surface` | `#12151a` | Cards and frames; the opaque glass fallback |
 | `surface-2` | `#1a1e24` | Hover states |
 | `line` | `#262b33` | Borders and dividers |
+| `line-strong` | `#636c7a` | Outlines that carry meaning: the boxes in the card diagrams |
 | `ink` | `#e8eaed` | Body text and headings |
 | `muted` | `#a3aab5` | Secondary text |
 | `accent` | `#8ab4f8` | Links and primary buttons |
-| `keep` / `revoke` / `decide` | `#5cc98a` / `#f07178` / `#e6b450` | The demo's decision colours (M6) |
+| `keep` / `revoke` / `decide` | `#5cc98a` / `#f07178` / `#e6b450` | The demo's decision colours (M6); code highlighting |
 
-Every text colour meets WCAG AA (4.5:1) on every surface, and on the header glass with a white
-image directly behind it (the worst case: blur leaves a white area white).
+Every text colour meets WCAG AA (4.5:1) on every surface. The header's colours (`ink`, `muted`,
+`accent`) also do on the header glass with a white image directly behind it (the worst case:
+blur leaves a white area white). `line-strong` meets 3:1 on every surface. The contrast test
+fails on any colour in `@theme` it doesn't know, so a new one has to be added there.
 
 ## Glass
 

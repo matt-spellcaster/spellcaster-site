@@ -1,5 +1,6 @@
 ---
 import { getCollection, render, type CollectionEntry } from 'astro:content';
+import LinkButton from '../../components/LinkButton.astro';
 import { site } from '../../data/site';
 import Base from '../../layouts/Base.astro';
 
@@ -40,20 +41,10 @@ const { Content } = await render(project);
         ))}
       </ul>
       <div class="mt-6 flex flex-wrap gap-3">
-        <a
-          href={repo}
-          class="bg-accent text-canvas hover:bg-ink inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"
-        >
+        <LinkButton href={repo} variant="primary">
           Code on GitHub
-        </a>
-        {sampleReport && (
-          <a
-            href={sampleReport}
-            class="border-line text-ink hover:bg-surface-2 inline-flex min-h-11 items-center rounded-lg border px-4 text-sm font-medium"
-          >
-            Sample report (PDF)
-          </a>
-        )}
+        </LinkButton>
+        {sampleReport && <LinkButton href={sampleReport}>Sample report (PDF)</LinkButton>}
       </div>
     </header>
     <div class="case-study border-line mt-12 max-w-3xl border-t pt-4">

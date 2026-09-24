@@ -1,6 +1,14 @@
 ---
+// The featured project's title, links and screenshot come from its entry in
+// src/content/projects/; the paragraph and the facts are written for the home page.
 import { Image } from 'astro:assets';
-import finished from '../assets/okta/slack-review-finished.png';
+import { getCollection } from 'astro:content';
+import LinkButton from './LinkButton.astro';
+
+const [project, ...more] = await getCollection('projects', (p) => p.data.featured);
+if (!project || more.length) throw new Error('expected exactly one featured project');
+const { title, repo, cover, coverAlt } = project.data;
+if (!cover || !coverAlt) throw new Error(`${project.id} is featured but has no cover`);
 
 const facts = [
   { value: '18', label: 'checks, each mapped to SOC 2 and ISO 27001' },
@@ -17,7 +25,7 @@ const facts = [
         id="featured-title"
         class="text-ink mt-3 text-2xl font-semibold tracking-tight sm:text-3xl"
       >
-        Okta access review in AWS
+        {title}
       </h2>
       <p class="text-ink/90 mt-5 text-base leading-relaxed sm:text-lg sm:leading-relaxed">
         A quarterly Okta access review that runs itself in AWS. It checks 18 things, like a leaver
@@ -35,27 +43,20 @@ const facts = [
         ))}
       </dl>
       <div class="mt-9 flex flex-wrap gap-3">
-        <a
-          href="/projects/okta-access-review-aws/"
-          class="bg-accent text-canvas hover:bg-ink inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"
-        >
+        <LinkButton href={`/projects/${project.id}/`} variant="primary">
           Read the case study
-        </a>
-        <a
-          href="https://github.com/matt-spellcaster/okta-access-review-aws"
-          class="border-line text-ink hover:bg-surface-2 inline-flex min-h-11 items-center rounded-lg border px-4 text-sm font-medium"
-        >
-          Code on GitHub
-        </a>
+        </LinkButton>
+        <LinkButton href={repo}>Code on GitHub</LinkButton>
       </div>
     </div>
     <figure>
       <div class="border-line bg-surface rounded-xl border p-2">
         <Image
-          src={finished}
+          src={cover}
           widths={[420, 630, 840, 1260]}
           sizes="(min-width: 1024px) 520px, calc(100vw - 2.5rem)"
-          alt="Slack: the finished review, signed off, with 18 findings by check from critical to info, the decisions, and the tickets opened"
+          loading="eager"
+          alt={coverAlt}
           class="h-auto w-full rounded-lg"
         />
       </div>

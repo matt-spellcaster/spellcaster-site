@@ -41,10 +41,14 @@ for (const [path, h1] of PAGES) {
       await page.goto(path);
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(h1);
       await expect(page.locator('meta[http-equiv="content-security-policy"]')).toHaveCount(1);
-      await page.waitForLoadState('networkidle');
-      // Scroll to the bottom so lazy images load under the CSP too.
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForLoadState('networkidle');
+      // Bring each image into view and wait for it, so lazy ones load under the CSP too.
+      // (A second waitForLoadState('networkidle') would return at once, without waiting.)
+      for (const img of await page.locator('img').all()) {
+        await img.scrollIntoViewIfNeeded();
+        await expect
+          .poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0))
+          .toBe(true);
+      }
       expect(problems).toEqual([]);
     });
 

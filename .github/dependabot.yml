@@ -16,8 +16,16 @@ updates:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
     groups:
+      # Minor and patch updates together. A major comes as its own pull request, so one that
+      # breaks the build doesn't hold back the rest.
       npm:
         patterns: ['*']
+        exclude-patterns: ['@playwright/test']
+        update-types: ['minor', 'patch']
+      # On its own too: its pull request also needs the dev container's PLAYWRIGHT_VERSION
+      # bumped by hand (a unit test checks they match).
+      playwright:
+        patterns: ['@playwright/test']
 
   - package-ecosystem: github-actions
     directory: /

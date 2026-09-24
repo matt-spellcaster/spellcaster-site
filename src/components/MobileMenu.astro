@@ -13,7 +13,7 @@ const { links } = Astro.props;
 <button
   type="button"
   popovertarget="site-menu"
-  class="text-ink hover:bg-surface-2 -mr-2 inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium sm:hidden"
+  class="menu-button text-ink hover:bg-surface-2 -mr-2 inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium sm:hidden"
 >
   Menu
 </button>
@@ -65,6 +65,15 @@ const { links } = Astro.props;
   @media (forced-colors: active) {
     .menu-sheet::backdrop {
       background: transparent;
+    }
+  }
+  /* Without the Popover API (Safari before 17, for one) the sheet would sit open inside the
+     header and the button would do nothing. There, the menu goes; the page still scrolls
+     to every section. */
+  @supports not selector(:popover-open) {
+    .menu-sheet,
+    .menu-button {
+      display: none;
     }
   }
 </style>

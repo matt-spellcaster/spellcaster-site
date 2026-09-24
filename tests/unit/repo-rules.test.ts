@@ -33,6 +33,15 @@ describe('CSP bans', () => {
   });
 });
 
+describe('design', () => {
+  it('colours come from @theme, not one-off values in class names', () => {
+    // A class like stroke-[#394150] would skip the contrast test; add a token instead.
+    const markup = filesUnder('src').filter((f) => /\.(astro|tsx|mdx)$/.test(f));
+    const oneOff = /\b[a-z-]+-\[(?:#|rgba?\(|hsla?\(|oklch\(|oklab\(|color:)/;
+    expect(markup.filter((f) => oneOff.test(read(f)))).toEqual([]);
+  });
+});
+
 describe('toolchain versions agree', () => {
   const pkg = JSON.parse(read('package.json')) as { devDependencies: Record<string, string> };
   const dockerfile = read('.devcontainer/Dockerfile');
@@ -42,7 +51,12 @@ describe('toolchain versions agree', () => {
     expect(arg).toBe(pkg.devDependencies['@playwright/test']);
   });
 
-  it('Node matches .node-version (the dev container locally, setup-node in CI)', () => {
+  it("the dev container's Node image is .node-version, pinned by digest", () => {
+    const from = /^FROM node:(\d+\.\d+\.\d+)-bookworm-slim@sha256:[0-9a-f]{64}$/m.exec(dockerfile);
+    expect(from?.[1]).toBe(read('.node-version').trim());
+  });
+
+  it('the Node running this test matches .node-version (the dev container, or setup-node in CI)', () => {
     expect(process.version).toBe(`v${read('.node-version').trim()}`);
   });
 
@@ -52,5 +66,87 @@ describe('toolchain versions agree', () => {
       ([, version]) => !/^\d+\.\d+\.\d+$/.test(version),
     );
     expect(loose).toEqual([]);
+  });
+});
+
+describe('supply chain', () => {
+  it('.npmrc keeps every install setting CLAUDE.md requires', () => {
+    const npmrc = Object.fromEntries(
+      read('.npmrc')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#'))
+        .map((line) => line.split('=').map((part) => part.trim())),
+    ) as Record<string, string>;
+    expect(npmrc).toMatchObject({
+      'ignore-scripts': 'true',
+      'allow-git': 'none',
+      'save-exact': 'true',
+      'engine-strict': 'true',
+    });
+    expect(Number(npmrc['min-release-age'])).toBeGreaterThanOrEqual(7);
+  });
+
+  describe('the dev container', () => {
+    const devsh = read('scripts/dev.sh');
+
+    it('mounts the repository read-only, apart from what the tools write', () => {
+      expect(devsh).toContain('args+=(--volume "$root:/work:ro")');
+      const writable = /^writable=\(([^)]*)\)/m.exec(devsh)?.[1]?.trim().split(/\s+/);
+      // Nothing here runs on the host or tells Claude Code what to do. Think before adding.
+      expect(writable).toEqual([
+        'src',
+        'public',
+        'tests',
+        'dist',
+        '.astro',
+        'test-results',
+        'playwright-report',
+        'package.json',
+        'astro.config.ts',
+        'eslint.config.ts',
+        'playwright.config.ts',
+        'vitest.config.ts',
+        'tsconfig.json',
+        'scripts/og-images.ts',
+      ]);
+      expect(devsh).toContain('args+=(--volume "$root/tests/ci:/work/tests/ci:ro")');
+    });
+
+    it('never shows it infra/ or .notes/, and stops if a file that acts on the host appears', () => {
+      expect(devsh).toMatch(
+        /for path in infra \.notes; do\s+if .*type=tmpfs,destination=\/work\/\$path/,
+      );
+      for (const name of ['.git', 'CLAUDE.md', 'CLAUDE.local.md', '.mcp.json', '.claude']) {
+        expect(devsh).toContain(`-name ${name} `);
+      }
+    });
+  });
+});
+
+describe('required checks', () => {
+  // The ruleset on main, the branch-rules evidence and the workflow's job names must agree:
+  // a renamed job would leave every pull request waiting for a check that never reports.
+  const ruleset = JSON.parse(read('.github/rulesets/main.json')) as {
+    rules: { type: string; parameters?: { required_status_checks?: { context: string }[] } }[];
+  };
+  const required = ruleset.rules
+    .find((rule) => rule.type === 'required_status_checks')
+    ?.parameters?.required_status_checks?.map((check) => check.context);
+
+  it('check_branch_rules.py expects the ruleset required checks', () => {
+    const list = /^REQUIRED_CHECKS = \[([^\]]*)\]/m.exec(
+      read('scripts/ci/check_branch_rules.py'),
+    )?.[1];
+    const expected = [...(list ?? '').matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    expect(expected).toEqual(required);
+  });
+
+  it('each required check is a job in compliance.yml', () => {
+    const jobs = [...read('.github/workflows/compliance.yml').matchAll(/^ {4}name: (.+)$/gm)].map(
+      (m) => m[1],
+    );
+    expect(required?.length).toBeGreaterThan(0);
+    for (const name of required ?? []) expect(jobs).toContain(name);
   });
 });

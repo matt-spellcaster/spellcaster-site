@@ -40,10 +40,18 @@ const white: RGB = [255, 255, 255];
 const over = (fg: RGB, alpha: number, bg: RGB): RGB =>
   fg.map((c, i) => c * alpha + (bg[i] ?? 0) * (1 - alpha)) as RGB;
 
-describe('text contrast (WCAG AA, 4.5:1)', () => {
-  const texts = ['ink', 'muted', 'accent'] as const;
-  const surfaces = ['canvas', 'surface', 'surface-2'] as const;
+// Every colour in @theme is one of these, so a new one can't skip the checks below.
+const headerTexts = ['ink', 'muted', 'accent'] as const; // also on the header glass
+const texts = [...headerTexts, 'keep', 'revoke', 'decide'] as const; // + code highlighting, the demo
+const surfaces = ['canvas', 'surface', 'surface-2'] as const;
+const lines = ['line', 'line-strong'] as const; // borders; line-strong outlines diagram boxes
 
+it('every @theme colour is a text, surface or line colour', () => {
+  const all = [...theme.matchAll(/--color-([\w-]+):/g)].map((m) => m[1]);
+  expect(all.sort()).toEqual([...texts, ...surfaces, ...lines].sort());
+});
+
+describe('text contrast (WCAG AA, 4.5:1)', () => {
   it.each(texts.flatMap((t) => surfaces.map((s) => [t, s] as const)))(
     '%s on %s',
     (text, surface) => {
@@ -56,13 +64,19 @@ describe('text contrast (WCAG AA, 4.5:1)', () => {
   });
 });
 
+describe('non-text contrast (WCAG 1.4.11, 3:1)', () => {
+  it.each(surfaces)('diagram box outlines (line-strong) on %s', (surface) => {
+    expect(contrast(token('line-strong'), token(surface))).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe('header glass', () => {
   it('has a parseable tint of at least 0.80', () => {
     expect(tintRGB).toBeDefined();
     expect(tintAlpha).toBeGreaterThanOrEqual(0.8);
   });
 
-  it.each(['ink', 'muted', 'accent'] as const)('%s stays readable over a white image', (text) => {
+  it.each(headerTexts)('%s stays readable over a white image', (text) => {
     const worst = over(tintRGB ?? white, tintAlpha ?? 0, white);
     expect(contrast(token(text), worst)).toBeGreaterThanOrEqual(4.5);
   });

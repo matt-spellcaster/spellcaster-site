@@ -9,6 +9,9 @@ export default defineConfig({
   // each other (a 1.6 s axe run took over 30 s). The whole suite takes about 25 s serially.
   workers: 1,
   reporter: process.env['CI'] ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // A folder inside test-results/: Playwright deletes its output folder before a run, and in
+  // the dev container test-results/ itself is a mount, which can't be deleted.
+  outputDir: 'test-results/e2e',
   use: { baseURL: 'http://127.0.0.1:4321' },
   projects: [
     { name: 'desktop-chrome', use: { ...devices['Desktop Chrome'] } },
