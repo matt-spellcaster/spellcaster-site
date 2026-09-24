@@ -40,6 +40,16 @@ describe('design', () => {
     const oneOff = /\b[a-z-]+-\[(?:#|rgba?\(|hsla?\(|oklch\(|oklab\(|color:)/;
     expect(markup.filter((f) => oneOff.test(read(f)))).toEqual([]);
   });
+
+  it('draws with gradients, never a blur filter (one crashed WebKit); the glass is the exception', () => {
+    // CLAUDE.md rule 4. glass.css holds the header's backdrop-filter, and the assets' own SVGs
+    // are images, not the page.
+    const sources = filesUnder('src').filter(
+      (f) => /\.(astro|tsx|mdx|css)$/.test(f) && !f.endsWith('glass.css'),
+    );
+    const blur = /<filter\b|feGaussianBlur|\bfilter[:=]\s*(?!none)|\b(?:backdrop-)?blur-(?:\[|\w)/;
+    expect(sources.filter((f) => blur.test(read(f)))).toEqual([]);
+  });
 });
 
 describe('toolchain versions agree', () => {

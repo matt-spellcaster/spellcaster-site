@@ -22,19 +22,21 @@ const { Content } = await render(project);
 <Base
   title={`${title} | ${site.name}`}
   description={summary.replace(/^DRAFT: /, '')}
-  ogImage={`/og/${project.id}.png`}
+  ogImage={`/og/${project.id}.jpg`}
   ogImageAlt={`Case study: ${title}`}
   type="article"
 >
   <article class="pt-24 pb-16 sm:pt-32">
     <header id="summary" class="max-w-3xl">
-      <p class="text-accent text-sm font-medium">Case study</p>
-      <h1 class="text-ink mt-2 text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
-      <p class="text-ink/90 mt-4 text-base leading-relaxed sm:text-lg">{summary}</p>
+      <p class="eyebrow">Case study</p>
+      <h1 class="text-ink mt-3 text-3xl leading-[1.15] font-medium tracking-[-0.015em] sm:text-5xl">
+        {title}
+      </h1>
+      <p class="text-ink/85 mt-4 text-lg leading-[1.55] sm:text-xl">{summary}</p>
       <h2 class="sr-only">What this shows</h2>
       <ul class="mt-5 space-y-2.5">
         {shows.map((line) => (
-          <li class="text-muted flex gap-3 text-sm leading-relaxed sm:text-base">
+          <li class="text-muted flex gap-3 text-[0.9375rem] leading-relaxed sm:text-base">
             <span aria-hidden="true" class="bg-accent mt-2 size-1.5 shrink-0 rounded-full" />
             <span>{line}</span>
           </li>

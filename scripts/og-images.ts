@@ -1,50 +1,88 @@
 // Makes the committed social and icon images. Run it again after changing the design:
 //   scripts/dev.sh node scripts/og-images.ts
-// Writes public/og/{home,okta-access-review-aws}.png (1200x630), public/apple-touch-icon.png
-// (180x180) and public/favicon.ico (32x32, a PNG inside an ICO container).
+// Writes public/og/{home,okta-access-review-aws}.jpg (1200x630; as PNG the sky's gradients
+// dithered to 230 to 300 KB), public/apple-touch-icon.png (180x180) and public/favicon.ico
+// (32x32, a PNG inside an ICO container).
 import { chromium } from '@playwright/test';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-const inter = readFileSync(
-  'node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
-);
+const font = (path: string) =>
+  `url(data:font/woff2;base64,${readFileSync(`node_modules/${path}`).toString('base64')}) format('woff2')`;
+const inter = font('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2');
+const newsreader = font('@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2');
 const shot = readFileSync('src/assets/okta/slack-review-finished.png');
 const favicon = readFileSync('public/favicon.svg', 'utf8');
 
+// The same look as the site (docs/design.md): warm black, Newsreader, the sky's wash and the
+// thin-line horizon along the bottom.
 const base = `
-  @font-face { font-family: Inter; font-weight: 100 900; src: url(data:font/woff2;base64,${inter.toString('base64')}) format('woff2'); }
+  @font-face { font-family: Newsreader; font-weight: 200 800; src: ${newsreader}; }
+  @font-face { font-family: Inter; font-weight: 100 900; src: ${inter}; }
   * { margin: 0; box-sizing: border-box; }
-  body { width: 1200px; height: 630px; overflow: hidden; background: #0b0d10; color: #e8eaed;
-         font-family: Inter, sans-serif; -webkit-font-smoothing: antialiased; }
-  .glow { position: absolute; inset: 0; background:
-          radial-gradient(700px 380px at 12% -10%, rgb(138 180 248 / 0.22), transparent 70%),
-          radial-gradient(520px 320px at 95% 110%, rgb(92 201 138 / 0.08), transparent 70%); }
-  .url { position: absolute; left: 80px; bottom: 64px; font-size: 26px; color: #a3aab5; }
+  body { width: 1200px; height: 630px; overflow: hidden; background: #111010; color: #ecebe6;
+         font-family: Newsreader, Georgia, serif; -webkit-font-smoothing: antialiased; }
+  .sky { position: absolute; inset: 0; opacity: 0.6;
+         background: radial-gradient(760px 420px at 50% 0, rgb(79 127 217 / 0.16), transparent 100%); }
+  .horizon { position: absolute; left: 0; bottom: 0; width: 1200px; height: 300px; opacity: 0.6; }
+  .url { position: absolute; left: 80px; bottom: 64px; font-family: Inter, sans-serif; font-size: 24px; color: #b0ada5; }
   .mark { position: absolute; right: 80px; bottom: 56px; width: 44px; height: 44px; }`;
+
+// The limb of the planet, as in src/components/Horizon.astro: gradients, no filters.
+const horizon = (() => {
+  const cx = 600;
+  const r = 1720;
+  const cy = 90 + r;
+  return `<svg class="horizon" viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="0" y1="90" x2="0" y2="300">
+        <stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/>
+      </linearGradient>
+      <mask id="mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1200" height="300">
+        <rect width="1200" height="300" fill="url(#fade)"/>
+      </mask>
+      <radialGradient id="haze" gradientUnits="userSpaceOnUse" cx="${cx}" cy="${cy}" r="${r + 220}">
+        <stop offset="${r / (r + 220)}" stop-color="#4f7fd9" stop-opacity="0.18"/>
+        <stop offset="1" stop-color="#4f7fd9" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="limb" gradientUnits="userSpaceOnUse" cx="${cx}" cy="${cy}" r="${r + 70}">
+        <stop offset="${r / (r + 70)}" stop-color="#6f9fe6" stop-opacity="0.32"/>
+        <stop offset="1" stop-color="#6f9fe6" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <g mask="url(#mask)">
+      <rect width="1200" height="300" fill="url(#haze)"/>
+      <rect width="1200" height="300" fill="url(#limb)"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#0b0c10"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#dbe7ff" stroke-width="1.5" opacity="0.9"/>
+    </g>
+  </svg>`;
+})();
 
 const mark = favicon.replace('<svg ', '<svg class="mark" ');
 
 const pages: Record<string, string> = {
   home: `<style>${base}
-      h1 { position: absolute; left: 80px; top: 200px; font-size: 104px; font-weight: 600; letter-spacing: -0.035em; }
-      p { position: absolute; left: 84px; top: 350px; font-size: 38px; color: #a3aab5; }
+      h1 { position: absolute; left: 80px; top: 176px; font-size: 96px; font-weight: 500; letter-spacing: -0.02em; }
+      p { position: absolute; left: 82px; top: 330px; width: 760px; font-size: 40px; line-height: 1.3; color: #b0ada5; }
     </style>
-    <div class="glow"></div>
+    <div class="sky"></div>${horizon}
     <h1>Matthew Spell</h1>
-    <p>IAM and IT systems engineering</p>
+    <p>Full stack IT. Here are some things I built.</p>
     <div class="url">spellcaster.foo</div>${mark}`,
 
   'okta-access-review-aws': `<style>${base}
-      .label { position: absolute; left: 80px; top: 120px; font-size: 26px; font-weight: 500; color: #8ab4f8; }
-      h1 { position: absolute; left: 80px; top: 164px; width: 560px; font-size: 68px; line-height: 1.08;
-           font-weight: 600; letter-spacing: -0.03em; }
-      p { position: absolute; left: 82px; top: 336px; width: 540px; font-size: 28px; line-height: 1.45; color: #a3aab5; }
+      .label { position: absolute; left: 80px; top: 120px; font-family: Inter, sans-serif; font-size: 20px;
+               font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #b0ada5; }
+      h1 { position: absolute; left: 80px; top: 160px; width: 560px; font-size: 64px; line-height: 1.12;
+           font-weight: 500; letter-spacing: -0.015em; }
+      p { position: absolute; left: 82px; top: 330px; width: 540px; font-size: 28px; line-height: 1.45; color: #b0ada5; }
       .frame { position: absolute; left: 700px; top: 70px; width: 440px; height: 620px; padding: 10px;
-               border: 1px solid #262b33; border-radius: 22px; background: #12151a; overflow: hidden; }
+               border: 1px solid #2b2828; border-radius: 22px; background: #181616; overflow: hidden;
+               box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 24px 48px -24px rgb(0 0 0 / 0.7); }
       .frame img { width: 100%; border-radius: 14px; display: block; }
       .mark { display: none; }
     </style>
-    <div class="glow"></div>
+    <div class="sky"></div>${horizon}
     <div class="label">Case study</div>
     <h1>Okta access review in AWS</h1>
     <p>18 checks, sign-off in Slack, fixes in Jira, evidence in S3</p>
@@ -73,7 +111,7 @@ mkdirSync('public/og', { recursive: true });
 for (const [name, html] of Object.entries(pages)) {
   await page.setContent(`<!doctype html><html><body>${html}</body></html>`, { waitUntil: 'load' });
   await page.evaluate(() => document.fonts.ready);
-  writeFileSync(`public/og/${name}.png`, await page.screenshot({ type: 'png' }));
+  writeFileSync(`public/og/${name}.jpg`, await page.screenshot({ type: 'jpeg', quality: 85 }));
 }
 
 // Apple touch icons are full-bleed squares; iOS rounds the corners itself.
@@ -91,4 +129,4 @@ for (const [size, out] of [
 }
 
 await browser.close();
-console.log('Wrote public/og/*.png, public/apple-touch-icon.png and public/favicon.ico');
+console.log('Wrote public/og/*.jpg, public/apple-touch-icon.png and public/favicon.ico');

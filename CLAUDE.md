@@ -2,7 +2,8 @@
 
 Matthew Spell's portfolio site, served at https://spellcaster.foo/. It's an Astro static
 site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The repository is
-**public** and is part of the portfolio, so it has to read well.
+**private for now and may be made public later** (Matthew's call, 2026-09-24), so treat it as
+public: it has to read well, and nothing private goes in (rule 7), whatever the setting says.
 
 ## Hard rules
 
@@ -23,10 +24,12 @@ site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The reposi
    each one either bypasses hashing or needs a CSP exception. Code blocks use Prism. The
    only relaxation is `style-src-attr 'unsafe-inline'`. `tests/unit/repo-rules.test.ts`
    and `tests/dist/` enforce this.
-4. **Design.** Follow `docs/design.md` (approved at the M2 gate): dark only, Inter, accent
+4. **Design.** Follow `docs/design.md` (the M2 gate, revised for "Editorial, with sky"):
+   dark only on a warm black, Newsreader for what's read and Inter for the UI, accent
    `#8ab4f8`. Frosted glass only on the header and the mobile menu, never on content, with
-   opaque fallbacks. New colours go in `@theme` in `src/styles/global.css`, where the
-   contrast test sees them.
+   opaque fallbacks. The sky is drawn with gradients only, never a large blur (one crashed
+   WebKit). New colours go in `@theme` in `src/styles/global.css`, where the contrast test
+   sees them.
 5. **Links.** Every internal `href` ends in `/` (for example `/projects/okta-access-review-aws/`).
 6. **Draft copy.** Text Matthew hasn't approved yet starts with `DRAFT:` (on the case study,
    at the start of each section), and facts only he can supply are `[placeholders]`.
@@ -34,13 +37,13 @@ site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The reposi
    Copy is written in Matthew's voice: plain, short sentences, no dashes, and no claim the
    linked repositories don't back up.
 7. **Nothing private in git.** No AWS account IDs, `backend.hcl`, `*.tfvars`, Terraform
-   state, phone number or home address. CI logs are public too: Terraform prints only its
+   state, phone number or home address. CI logs would be public too: Terraform prints only its
    plan summary, and role ARNs and the state bucket live in GitHub secrets. The
    pre-commit hook (`git config core.hooksPath .githooks`) refuses the obvious cases,
    including any PDF, found by name or content (`scripts/ci/check_pdfs.py`): a PDF's text is
    compressed, so no line scan can read it, and none belongs here. Matthew's resume is not
    on the site, by his choice, and a dist test fails on any PDF in `dist/`. CI's Security
-   job runs the same PDF check over every branch and tag, but by then the file is public:
+   job runs the same PDF check over every branch and tag, but by then the file is in the history:
    the hook is the only check that stops a leak.
 
 ## Commands (all through `scripts/dev.sh`)
@@ -63,8 +66,8 @@ there can't shadow a standard module.
 
 - `src/pages/`, `src/layouts/`, `src/components/`, `src/styles/`: the site.
 - `src/data/site.ts`: name, pitch and links, in one place.
-- `src/content/projects/`: one entry per project card; the featured one (`.mdx`) is also the
-  case study at `/projects/<id>/`. The schema is in `src/content.config.ts`.
+- `src/content/projects/`: one entry per project on the home page; the featured one (`.mdx`)
+  is also the case study at `/projects/<id>/`. The schema is in `src/content.config.ts`.
 - `tests/unit/` (source and repository rules), `tests/dist/` (the built `dist/`),
   `tests/e2e/` (Playwright + axe on Desktop Chrome, iPhone WebKit and Pixel), `tests/ci/`
   (the Python CI helpers).

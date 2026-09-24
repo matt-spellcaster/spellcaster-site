@@ -2,6 +2,7 @@
 import { Font } from 'astro:assets';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import Sky from '../components/Sky.astro';
 import { site } from '../data/site';
 import '../styles/global.css';
 
@@ -15,9 +16,20 @@ interface Props {
   /** Structured data for search engines (schema.org). */
   jsonLd?: Record<string, unknown>;
   noindex?: boolean;
+  /** The home page: the name in the header is the h1. */
+  nameIsH1?: boolean;
 }
 
-const { title, description, ogImage, ogImageAlt, type = 'website', jsonLd, noindex } = Astro.props;
+const {
+  title,
+  description,
+  ogImage,
+  ogImageAlt,
+  type = 'website',
+  jsonLd,
+  noindex,
+  nameIsH1 = false,
+} = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const image = new URL(ogImage, Astro.site).href;
 ---
@@ -28,7 +40,7 @@ const image = new URL(ogImage, Astro.site).href;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0b0d10" />
+    <meta name="theme-color" content="#111010" />
     <title>{title}</title>
     <meta name="description" content={description} />
     {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
@@ -48,33 +60,23 @@ const image = new URL(ogImage, Astro.site).href;
     <meta property="og:image:alt" content={ogImageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
 
+    <!-- Both faces are on screen at once (the pitch and the nav), so both preload. -->
+    <Font cssVariable="--font-newsreader" preload />
     <Font cssVariable="--font-inter" preload />
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>}
   </head>
-  <body class="bg-canvas text-ink min-h-dvh font-sans antialiased">
+  <body class="bg-canvas text-ink min-h-dvh font-serif antialiased">
     <a
       href="#main"
-      class="bg-accent text-canvas fixed top-2 left-2 z-[60] -translate-y-20 rounded-lg px-4 py-3 text-sm font-medium focus:translate-y-0"
+      class="bg-accent text-canvas fixed top-2 left-2 z-[60] -translate-y-20 rounded-lg px-4 py-3 font-sans text-sm font-medium focus:translate-y-0"
     >
       Skip to content
     </a>
-    <Header />
-    <!-- A soft glow behind the header, so the glass has something to frost. -->
-    <div
-      aria-hidden="true"
-      class="glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem]"
-    ></div>
-    <main id="main" class="mx-auto max-w-5xl px-5 sm:px-8">
+    <Header nameIsH1={nameIsH1} />
+    <Sky />
+    <main id="main" class="max-w-page mx-auto px-5 sm:px-8">
       <slot />
     </main>
     <Footer />
   </body>
 </html>
-
-<style>
-  .glow {
-    background:
-      radial-gradient(40rem 22rem at 18% -4rem, rgb(138 180 248 / 0.16), transparent 70%),
-      radial-gradient(30rem 18rem at 85% 2rem, rgb(92 201 138 / 0.07), transparent 70%);
-  }
-</style>

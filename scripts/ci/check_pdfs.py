@@ -1,4 +1,4 @@
-"""Refuse PDFs: this public repository holds none.
+"""Refuse PDFs: this repository is treated as public and holds none.
 
     python3 -I scripts/ci/check_pdfs.py --staged    # what `git commit` is about to add (the hook)
     python3 -I scripts/ci/check_pdfs.py --history   # every file on every branch and tag (CI)

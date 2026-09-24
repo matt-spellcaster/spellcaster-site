@@ -109,7 +109,7 @@ test.describe('header', () => {
     expect((await style()).filter).toContain('blur(16px)');
 
     await page.emulateMedia({ contrast: 'more' });
-    expect(await style()).toEqual({ filter: 'none', bg: 'rgb(18, 21, 26)' });
+    expect(await style()).toEqual({ filter: 'none', bg: 'rgb(24, 22, 22)' });
 
     await page.emulateMedia({ contrast: 'no-preference', forcedColors: 'active' });
     expect((await style()).filter).toBe('none');
@@ -144,6 +144,35 @@ test.describe('mobile menu', () => {
     await page.getByRole('button', { name: 'Menu' }).click();
     await sheet.getByRole('link', { name: 'Work' }).click();
     await expect(sheet).toBeHidden();
+  });
+});
+
+test.describe('more projects', () => {
+  test('each row is one link, named after its project, that covers the row', async ({ page }) => {
+    await page.goto(WITH_HEADER);
+    const rows = page.getByRole('region', { name: 'More projects' }).getByRole('listitem');
+    await expect(rows).toHaveCount(3);
+    for (const row of await rows.all()) {
+      const name = row.getByRole('heading', { level: 3 });
+      const title = (await name.textContent())?.trim() ?? '';
+      // Playwright pads a block-level child (the sr-only span) with spaces when it computes
+      // the name, so it reads "GitHub : title"; browsers read "GitHub: title".
+      const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const link = row.getByRole('link', { name: new RegExp(`^GitHub ?: ${escaped}$`) });
+      await expect(link).toHaveAttribute('href', /^https:\/\/github\.com\//);
+      // The link's ::after box covers the row, so a click on the project's name is a click on
+      // the link (checked without following it off the site). The one-liner sits above the
+      // link on purpose, so the probe is the name, not the row's middle.
+      await row.scrollIntoViewIfNeeded();
+      const box = await name.boundingBox();
+      expect(box).not.toBeNull();
+      const point: [number, number] = [(box?.x ?? 0) + 4, (box?.y ?? 0) + (box?.height ?? 0) / 2];
+      const hit = await page.evaluate(
+        ([x, y]) => document.elementFromPoint(x, y)?.closest('a')?.textContent?.trim() ?? '',
+        point,
+      );
+      expect(hit).toContain('GitHub');
+    }
   });
 });
 

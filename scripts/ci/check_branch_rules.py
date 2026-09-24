@@ -1,8 +1,16 @@
 """Check that the default branch and the production environment are protected.
 
-Reads GET /repos/{repo}/rules/branches/{branch} and the production environment's
-settings, which only need read access, so the workflow's GITHUB_TOKEN is enough.
-Writes what it found as evidence and exits 1 if a required protection is missing.
+Reads GET /repos/{repo}/rules/branches/{branch}, the production environment's settings
+and the repository's visibility, which only need read access, so the workflow's
+GITHUB_TOKEN is enough. Writes what it found as evidence and exits 1 if a required
+protection is missing.
+
+GitHub offers deployment protection rules (a required reviewer) on private repositories
+only with GitHub Enterprise. While this repository is private and deploys are off (the
+DEPLOY_ENABLED variable, passed in as an environment variable), that requirement is waived
+and recorded as such: a change still reaches main only through a pull request with the
+required checks, and nothing deploys. Once deploys are on, a missing reviewer fails the
+check again, so the first real deploy can't happen with no one approving it.
 
     python3 scripts/ci/check_branch_rules.py --repo owner/name --branch main
 """
@@ -67,7 +75,11 @@ def fetch_environment(repo: str, token: str) -> dict:
     return env
 
 
-def evaluate_environment(env: dict) -> list[dict]:
+def fetch_private(repo: str, token: str) -> bool:
+    return bool(get(f"/repos/{repo}", token).get("private"))
+
+
+def evaluate_environment(env: dict, private: bool = False, deploys_enabled: bool = False) -> list[dict]:
     policy = env.get("deployment_branch_policy") or {}
     branches = sorted(f"{p.get('type', 'branch')}:{p.get('name')}" for p in env.get("branch_policies", []))
     only_main = bool(policy.get("custom_branch_policies")) and branches == [f"branch:{DEPLOY_BRANCH}"]
@@ -75,11 +87,22 @@ def evaluate_environment(env: dict) -> list[dict]:
         r for rule in env.get("protection_rules", []) if rule.get("type") == "required_reviewers"
         for r in rule.get("reviewers", [])
     ]
+    reviewer_row = {"requirement": f"'{ENVIRONMENT}' deployments need a reviewer's approval",
+                    "rule": "environment", "met": bool(reviewers), "detail": f"{len(reviewers)} required reviewer(s)"}
+    if private and not reviewers:
+        # Not offered on a private repository below GitHub Enterprise (see the module docstring).
+        if deploys_enabled:
+            reviewer_row["detail"] = ("none, and not available on a private repository on this plan, "
+                                      "while DEPLOY_ENABLED is set: nothing approves a deploy")
+        else:
+            reviewer_row.update(met=True, waived=True,
+                                detail="waived: not available on a private repository on this plan, and "
+                                       "deploys are off (DEPLOY_ENABLED unset); a change still needs a "
+                                       "pull request with the required checks")
     return [
         {"requirement": f"Only '{DEPLOY_BRANCH}' can deploy to '{ENVIRONMENT}'", "rule": "environment",
          "met": only_main, "detail": ", ".join(branches) or "any branch"},
-        {"requirement": f"'{ENVIRONMENT}' deployments need a reviewer's approval", "rule": "environment",
-         "met": bool(reviewers), "detail": f"{len(reviewers)} required reviewer(s)"},
+        reviewer_row,
     ]
 
 
@@ -119,19 +142,24 @@ def main(argv: list[str] | None = None) -> int:
         p.error("--branch is empty")
 
     token = os.environ.get("GITHUB_TOKEN", "")
+    deploys_enabled = os.environ.get("DEPLOY_ENABLED", "").strip().lower() == "true"
     try:
         rules = fetch_rules(args.repo, args.branch, token)
         environment = fetch_environment(args.repo, token)
+        private = fetch_private(args.repo, token)
     except urllib.error.HTTPError as e:
-        print(f"could not read branch rules or the {ENVIRONMENT} environment: HTTP {e.code}", file=sys.stderr)
+        print(f"could not read branch rules, the {ENVIRONMENT} environment or the repository: HTTP {e.code}",
+              file=sys.stderr)
         return 2
-    rows = evaluate(rules) + evaluate_environment(environment)
+    rows = evaluate(rules) + evaluate_environment(environment, private, deploys_enabled)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps({"repo": args.repo, "branch": args.branch, "checks": rows, "rules": rules,
+    args.out.write_text(json.dumps({"repo": args.repo, "branch": args.branch, "private": private,
+                                    "deploys_enabled": deploys_enabled, "checks": rows, "rules": rules,
                                     "environment": environment}, indent=2) + "\n")
     for row in rows:
-        print(f"{'ok     ' if row['met'] else 'MISSING'}  {row['requirement']}")
+        status = "waived " if row.get("waived") else "ok     " if row["met"] else "MISSING"
+        print(f"{status}  {row['requirement']}")
     return 0 if all(row["met"] for row in rows) else 1
 
 

@@ -17,8 +17,9 @@ permissions: {} # every job asks for exactly what it needs
 
 concurrency:
   # Pull requests share a group per branch, so a new push cancels the superseded run.
-  # Every other run gets a group to itself, so a deploy waiting for approval never
-  # blocks (or cancels) the runs behind it. The deploy job has its own group.
+  # Every other run gets a group to itself, so a deploy waiting for approval (where the plan
+  # offers a reviewer) never blocks (or cancels) the runs behind it. The deploy job has its
+  # own group.
   group: compliance-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -257,6 +258,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           # A scheduled run's event has no repository object; it always runs on the default branch.
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch || github.ref_name }}
+          # The reviewer requirement is waived on a private repository only while this is unset.
+          # A repository variable, like the deploy job's: this job has no environment to read one from.
+          DEPLOY_ENABLED: ${{ vars.DEPLOY_ENABLED }}
         run: |
           set +e
           python3 scripts/ci/check_branch_rules.py --branch "$DEFAULT_BRANCH" --out results/branch-rules.json
@@ -264,7 +268,7 @@ jobs:
           python3 scripts/ci/record.py branch-rules "$code" --title "Branch rules" \
             --control "SOC 2 CC8.1" --control "ISO 27001 A.8.32" \
             --tool "GitHub rulesets and environments API" \
-            --detail "${DEFAULT_BRANCH}: pull requests, required checks, linear history, no force pushes or deletion; production deploys from ${DEFAULT_BRANCH} only, with approval"
+            --detail "${DEFAULT_BRANCH}: pull requests, required checks, linear history, no force pushes or deletion; production deploys from ${DEFAULT_BRANCH} only, with approval where the plan offers it (results/branch-rules.json says if it was waived)"
           exit "$code"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -330,8 +334,9 @@ jobs:
   deploy-production:
     name: Deploy production
     needs: [build, e2e, security, evidence, sign]
-    # Main only, once AWS is set up, and only after the protected "production"
-    # environment's reviewer approves the run.
+    # Main only, once AWS is set up, behind the DEPLOY_ENABLED variable. The protected
+    # "production" environment's reviewer approves the run where the plan offers one (not on
+    # a private repository below Enterprise: check_branch_rules.py records the waiver).
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-24.04
     environment: production

@@ -1,12 +1,17 @@
 ---
-// The featured project's title, links and screenshot come from its entry in
-// src/content/projects/; the paragraph and the facts are written for the home page.
+// The featured project, written up like an article. Its title, links and screenshot come
+// from its entry in src/content/projects/; the paragraph and the facts are written for the
+// home page.
 import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
-import LinkButton from './LinkButton.astro';
+import TextLink from './TextLink.astro';
 
 const [project, ...more] = await getCollection('projects', (p) => p.data.featured);
 if (!project || more.length) throw new Error('expected exactly one featured project');
+// The paragraph and the facts below are written for this one project, not read from its entry.
+if (project.id !== 'okta-access-review-aws') {
+  throw new Error(`the featured write-up is for okta-access-review-aws, not ${project.id}`);
+}
 const { title, repo, cover, coverAlt } = project.data;
 if (!cover || !coverAlt) throw new Error(`${project.id} is featured but has no cover`);
 
@@ -17,52 +22,59 @@ const facts = [
 ];
 ---
 
-<section id="work" aria-labelledby="featured-title" class="border-line border-t py-16 sm:py-24">
-  <div class="grid items-start gap-10 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
-    <div class="lg:sticky lg:top-24">
-      <p class="text-accent text-sm font-medium">Featured project</p>
-      <h2
-        id="featured-title"
-        class="text-ink mt-3 text-2xl font-semibold tracking-tight sm:text-3xl"
-      >
-        {title}
-      </h2>
-      <p class="text-ink/90 mt-5 text-base leading-relaxed sm:text-lg sm:leading-relaxed">
-        A quarterly Okta access review that runs itself in AWS. It checks 18 things, like a leaver
-        whose API token still works, sends every item to the CISO in Slack, and opens a Jira ticket
-        for each fix. Then it reads Okta again to make sure the fix really happened.
-      </p>
-      <dl class="mt-8 grid grid-cols-3 gap-4">
-        {facts.map((fact) => (
-          <div class="border-line flex flex-col border-l pl-3">
-            <dt class="text-muted text-xs leading-snug sm:text-sm">{fact.label}</dt>
-            <dd class="text-ink order-first text-xl font-semibold tabular-nums sm:text-2xl">
-              {fact.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <div class="mt-9 flex flex-wrap gap-3">
-        <LinkButton href={`/projects/${project.id}/`} variant="primary">
-          Read the case study
-        </LinkButton>
-        <LinkButton href={repo}>Code on GitHub</LinkButton>
+<section id="work" aria-labelledby="featured-title" class="pt-32 sm:pt-36">
+  <p class="eyebrow">Featured</p>
+  <h2
+    id="featured-title"
+    class="text-ink mt-5 text-[2rem] leading-[1.15] font-medium tracking-[-0.015em] sm:text-[2.5rem]"
+  >
+    {title}
+  </h2>
+  <p class="text-ink/85 mt-4 text-lg leading-[1.6] sm:text-xl">
+    A quarterly Okta access review that runs itself in AWS. It checks 18 things, like a leaver whose
+    API token still works, sends every item to the CISO in Slack, and opens a Jira ticket for each
+    fix. Then it reads Okta again to make sure the fix really happened.
+  </p>
+  <dl class="mt-7 grid grid-cols-3 gap-4 sm:flex sm:gap-x-10">
+    {facts.map((fact) => (
+      <div class="flex flex-col gap-0.5 sm:max-w-[18ch]">
+        <dt class="text-muted font-sans text-[0.8125rem] leading-snug">{fact.label}</dt>
+        <dd class="text-ink order-first text-3xl tabular-nums">{fact.value}</dd>
       </div>
+    ))}
+  </dl>
+  <figure class="mt-8">
+    <!-- Cropped to 4:3 from the top at build time, so no variant carries pixels the frame hides.
+         Lazy: on phones the figure is below the fold, and the fonts should win the first round trips. -->
+    <div class="frame border-line bg-surface rounded-xl border p-2">
+      <Image
+        src={cover}
+        width={1260}
+        height={945}
+        fit="cover"
+        position="top"
+        widths={[420, 750, 1260]}
+        sizes="(min-width: 832px) 750px, calc(100vw - 2.5rem)"
+        alt={coverAlt}
+        class="h-auto w-full rounded-lg"
+      />
     </div>
-    <figure>
-      <div class="border-line bg-surface rounded-xl border p-2">
-        <Image
-          src={cover}
-          widths={[420, 630, 840, 1260]}
-          sizes="(min-width: 1024px) 520px, calc(100vw - 2.5rem)"
-          loading="eager"
-          alt={coverAlt}
-          class="h-auto w-full rounded-lg"
-        />
-      </div>
-      <figcaption class="text-muted mt-3 text-sm">
-        The finished review in Slack, from a demo run with the fictional Acme company.
-      </figcaption>
-    </figure>
+    <figcaption class="text-muted mt-3 font-sans text-[0.8125rem]">
+      The finished review in Slack, from a demo run with the fictional Acme company.
+    </figcaption>
+  </figure>
+  <div class="mt-4 flex flex-wrap gap-x-6">
+    <TextLink href={`/projects/${project.id}/`}>Read the case study</TextLink>
+    <TextLink href={repo}>Code on GitHub</TextLink>
   </div>
 </section>
+
+<style>
+  /* An edge light along the top and a soft drop, so the frame sits on the page. */
+  .frame {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.05),
+      0 1px 2px rgb(0 0 0 / 0.4),
+      0 24px 48px -24px rgb(0 0 0 / 0.7);
+  }
+</style>

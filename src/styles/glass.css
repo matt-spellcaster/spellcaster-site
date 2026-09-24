@@ -7,7 +7,7 @@
    - Every fallback is opaque: no backdrop-filter support, reduced transparency, more
      contrast, forced colors. */
 .glass {
-  background-color: rgb(11 13 16 / 0.8);
+  background-color: rgb(17 16 16 / 0.8);
   -webkit-backdrop-filter: saturate(160%) blur(16px);
   backdrop-filter: saturate(160%) blur(16px);
   border-color: rgb(255 255 255 / 0.08);
@@ -16,7 +16,7 @@
 /* The menu sheet. WebKit draws no blur for elements in the top layer (where popovers
    live), so a heavier tint keeps the page's text from showing through the menu links. */
 .glass-strong {
-  background-color: rgb(11 13 16 / 0.92);
+  background-color: rgb(17 16 16 / 0.92);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

@@ -2,16 +2,12 @@
 import { site } from '../data/site';
 ---
 
-<footer class="border-line mt-8 border-t">
-  <div class="text-muted mx-auto flex max-w-5xl flex-col gap-2 px-5 py-8 text-sm sm:flex-row sm:justify-between sm:px-8">
+<footer class="border-line mt-8 border-t font-sans">
+  <div class="text-muted max-w-page mx-auto flex flex-col gap-2 px-5 py-8 text-[0.8125rem] sm:flex-row sm:justify-between sm:px-8">
+    <!-- The repository is private for now; the "code is public" line and its link come back
+         with it (git log has the wording). -->
     <p>
       © {new Date().getFullYear()} {site.name}
-    </p>
-    <p>
-      This site's code, Terraform and CI are public:{' '}
-      <a href={site.repo} class="text-accent underline underline-offset-4">
-        spellcaster-site on GitHub
-      </a>
     </p>
   </div>
 </footer>
