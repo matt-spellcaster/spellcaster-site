@@ -45,18 +45,41 @@ class MatchesTerraform(unittest.TestCase):
         self.assertEqual(int(default("github_owner_id")), t.OWNER_ID)
         self.assertEqual(int(default("github_repo_id")), t.REPO_ID)
         self.assertEqual(default("domain"), t.DOMAIN)
-        self.assertEqual(default("region"), t.REGION)
+        self.assertIn(f'region    = "{t.REGION}"', (BOOTSTRAP / "main.tf").read_text())
         self.assertEqual(default("github_repository").split("/")[0], t.OWNER)
 
     def test_role_names_and_tag_keys_match(self):
         main = (BOOTSTRAP / "main.tf").read_text()
         for name in t.ROLES.values():
-            self.assertIn(f'role      = "{name}"', main)
+            self.assertRegex(main, rf'\n\s+role\s+=\s+"{name}"\n')
         keys = re.search(r"tag_keys = \[(.*?)\]", main).group(1)
         self.assertEqual(re.findall(r'"(\w+)"', keys), t.TAG_KEYS)
         versions = (BOOTSTRAP / "versions.tf").read_text()
         for key in t.TAG_KEYS:
             self.assertRegex(versions, rf"\n\s+{key}\s+=")
+
+    def test_names_in_the_cases_match(self):
+        """The names CASES tests against are the ones the Terraform fences on, so a rename
+        there can't leave the deny cases testing a name nothing uses."""
+        main = (BOOTSTRAP / "main.tf").read_text()
+        roles = (BOOTSTRAP / "ci_roles.tf").read_text()
+        self.assertIn('bucket_suffix = "${local.account_id}-${local.region}-an"', main)
+        arns = t.resources(ACCOUNT, ZONE)
+        suffix = f"-{ACCOUNT}-{t.REGION}-an"
+        for key, local in [("state", '"portfolio-tfstate-${local.bucket_suffix}"'),
+                           ("qa_bucket", '"portfolio-qa-${local.bucket_suffix}"'),
+                           ("prod_bucket", '"portfolio-production-${local.bucket_suffix}"')]:
+            self.assertTrue(arns[key].endswith(suffix), key)
+            self.assertIn(local, main)
+            self.assertEqual(arns[key], "arn:aws:s3:::" + local.strip('"').replace("${local.bucket_suffix}",
+                                                                                  suffix[1:]))
+        for key in ("envs/qa/terraform.tfstate", "envs/prod/terraform.tfstate"):
+            self.assertIn(f'state_key = "{key}"', main)
+            self.assertTrue(any(key in c.resource for c in t.CASES), key)
+        self.assertTrue(arns["password"].endswith(":parameter/portfolio/qa/basic-auth-password"))
+        self.assertIn(":parameter/portfolio/qa/basic-auth-password", roles)
+        self.assertTrue(arns["prod_alarm"].split(":alarm:")[1].startswith("portfolio-production-"))
+        self.assertIn(':alarm:portfolio-production-*"', roles)
 
     def test_trust_subject_matches(self):
         roles = (BOOTSTRAP / "ci_roles.tf").read_text()
@@ -110,6 +133,13 @@ class Cases(unittest.TestCase):
                 self.assertTrue(c.why)
                 c.resource.format(**arns)  # every placeholder is known
 
+    def test_no_two_cases_send_the_same_request(self):
+        seen = set()
+        for c in t.CASES:
+            key = (c.role, c.action, c.resource, json.dumps(c.context, sort_keys=True))
+            self.assertNotIn(key, seen, c.why)
+            seen.add(key)
+
     def test_each_role_has_allows_denies_and_guardrails(self):
         for env in t.ROLES:
             kinds = {c.expect for c in t.CASES if c.role == env}
@@ -140,10 +170,14 @@ class FakeAws:
     """Answers the CLI calls run_checks makes. The simulator answers what each case expects,
     unless the case's reason is in wrong."""
 
-    def __init__(self, wrong=(), findings=(), attached=()):
+    ZONES = [(ZONE, f"{t.QA_DOMAIN}."), ("ZOTHER", f"x{t.QA_DOMAIN}.")]
+
+    def __init__(self, wrong=(), findings=(), attached=(), zones=ZONES, policies=("access", "guardrails")):
         self.wrong = set(wrong)
         self.findings = list(findings)
         self.attached = list(attached)
+        self.zones = list(zones)
+        self.policies = list(policies)
         self.calls = []
 
     def __call__(self, args):
@@ -152,15 +186,14 @@ class FakeAws:
         if cmd == ("sts", "get-caller-identity"):
             return {"Account": ACCOUNT}
         if cmd == ("route53", "list-hosted-zones-by-name"):
-            return {"HostedZones": [{"Id": f"/hostedzone/{ZONE}", "Name": f"{t.QA_DOMAIN}."},
-                                    {"Id": "/hostedzone/ZOTHER", "Name": f"x{t.QA_DOMAIN}."}]}
+            return {"HostedZones": [{"Id": f"/hostedzone/{i}", "Name": n} for i, n in self.zones]}
         role = args[args.index("--role-name") + 1] if "--role-name" in args else None
         env = {v: k for k, v in t.ROLES.items()}.get(role)
         if cmd == ("iam", "get-role"):
             self.env = env  # run_checks reads a role, then simulates its cases
             return {"Role": {"AssumeRolePolicyDocument": trust(env)}}
         if cmd == ("iam", "list-role-policies"):
-            return {"PolicyNames": ["access", "guardrails"]}
+            return {"PolicyNames": self.policies}
         if cmd == ("iam", "get-role-policy"):
             return {"PolicyDocument": {"Version": "2012-10-17", "Statement": []}}
         if cmd == ("iam", "list-attached-role-policies"):
@@ -219,6 +252,20 @@ class Report(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("attached: AdministratorAccess", out)
 
+    def test_no_inline_policies_fails(self):
+        code, out = run(FakeAws(policies=[]))
+        self.assertEqual(code, 1)
+        self.assertIn("inline: none", out)
+
+    def test_the_qa_zone_must_be_unique(self):
+        for zones in ([], [(ZONE, f"{t.QA_DOMAIN}."), ("ZTWO", f"{t.QA_DOMAIN}.")]):
+            with self.subTest(zones=zones):
+                err = io.StringIO()
+                with contextlib.redirect_stderr(err):
+                    code, _ = run(FakeAws(zones=zones))
+                self.assertEqual(code, 2)
+                self.assertIn(f"hosted zone named {t.QA_DOMAIN}, found {len(zones)}", err.getvalue())
+
     def test_an_aws_error_exits_2(self):
         def broken(args):
             raise RuntimeError("aws sts get-caller-identity failed: token expired")
@@ -227,6 +274,16 @@ class Report(unittest.TestCase):
             code, _ = run(broken)
         self.assertEqual(code, 2)
         self.assertIn("token expired", err.getvalue())
+
+    def test_an_aws_error_hides_the_account(self):
+        account = "4" * 12  # built here: the pre-commit hook refuses 12-digit literals
+        failed = mock.Mock(returncode=254, stdout="",
+                           stderr=f"AccessDenied: arn:aws:sts::{account}:assumed-role/x/y")
+        with mock.patch.object(t.subprocess, "run", return_value=failed):
+            with self.assertRaises(RuntimeError) as e:
+                t.cli("portfolio-read")(["sts", "get-caller-identity"])
+        self.assertNotIn(account, str(e.exception))
+        self.assertIn("arn:aws:sts::{account}:assumed-role", str(e.exception))
 
 
 if __name__ == "__main__":

@@ -13,9 +13,9 @@ this repository: they live in your AWS profiles, in git-ignored files and in Git
 
 | Terraform root | Applied by | Holds |
 |---|---|---|
-| `infra/bootstrap` | You, by hand | The state bucket, GitHub's OIDC provider, the two CI roles, the `qa.spellcaster.foo` zone and its fixed records, the production certificate, the origin access control, both security-header policies, the alerts topic and a $5 budget |
+| `infra/bootstrap` | You, by hand | The state bucket, GitHub's OIDC provider, the two CI roles, the `qa.spellcaster.foo` zone and its fixed records, both certificates (production and QA), the origin access control, both security-header policies, the alerts topic and a $5 budget |
 | `infra/envs/prod` (M4b) | CI, `portfolio-prod` role | The production bucket, CloudFront function and distribution, traffic alarms |
-| `infra/envs/qa` (M4c) | CI, `portfolio-qa` role | The same for QA, plus its certificate and DNS records; built and torn down on demand |
+| `infra/envs/qa` (M4c) | CI, `portfolio-qa` role | The same for QA, plus its DNS record; built and torn down on demand |
 
 Bootstrap holds everything that must outlive a deploy, or that CI must never change.
 
@@ -26,17 +26,28 @@ GitHub environment of this repository, matched by the owner's and the repository
 IDs. A renamed repository keeps working, and a new repository with an old name gets nothing.
 
 - **`portfolio-qa`** (the `qa` environment): its own state key, the QA bucket, CloudFront
-  resources tagged `Environment=qa`, a certificate for `qa.spellcaster.foo` only, A/AAAA
-  records at `qa.spellcaster.foo` and ACM's validation CNAMEs, and the QA password in SSM.
+  resources tagged `Environment=qa`, A/AAAA records at `qa.spellcaster.foo`, and the QA
+  password in SSM.
 - **`portfolio-prod`** (the `production` environment, main only): its own state key, the
   production bucket, CloudFront resources tagged `Environment=production`, and its alarms.
-  It can't delete the distribution, the bucket or old versions of files, and it can't
-  touch certificates or DNS.
+  It can't delete the distribution, the bucket or old versions of files, or set a lifecycle
+  rule that would expire them, and it can't touch DNS. (It can pause versioning, which keeps
+  every version made until then.)
 
 A separate guardrails policy on each role denies what neither may ever do: IAM,
 Organizations, billing, moving a domain between distributions, the shared CloudFront
-policies, re-tagging another environment's resources, exportable certificates and hosted
-zones.
+policies, moving a resource across the `Environment` tag in either direction, any change to
+a certificate (bootstrap issues both), and hosted zones.
+
+Two things IAM can't fence:
+
+- **A distribution's domain names and certificate.** No condition key covers them, so a role
+  could put a name nobody holds yet on its own distribution. CloudFront refuses a name that
+  another distribution already holds. So production takes `spellcaster.foo` and `www` first
+  (M4b), and the `qa` environment stays locked until M4c (bring-up step 6).
+- **What a bucket policy says.** Each role writes its own bucket's policy, so it could grant
+  another AWS account access. That isn't "public", so the account's public access block
+  allows it. Accepted: only this repository's CI can use the roles.
 
 To check the roles as deployed (read-only access is enough):
 
@@ -45,8 +56,8 @@ aws sso login --profile portfolio-read
 python3 -I scripts/ci/iam_policy_tests.py
 ```
 
-It checks both trust policies, runs every policy through IAM Access Analyzer, then puts about
-90 requests through the IAM policy simulator: what each role may do, what it may not, and
+It checks both trust policies, runs every policy through IAM Access Analyzer, then puts 101
+requests through the IAM policy simulator: what each role may do, what it may not, and
 what a guardrail must block.
 
 ## Bring-up (M4a, one sitting)
@@ -70,7 +81,7 @@ AWS_PROFILE=portfolio-admin terraform init
 AWS_PROFILE=portfolio-admin terraform plan -out=tfplan
 ```
 
-Read the plan. It should say `Plan: 28 to add, 0 to change, 0 to destroy`. Then:
+Read the plan. It should say `Plan: 30 to add, 0 to change, 0 to destroy`. Then:
 
 ```bash
 AWS_PROFILE=portfolio-admin terraform apply tfplan
@@ -97,14 +108,31 @@ copies: `rm terraform.tfstate terraform.tfstate.backup`.
 **3. Add the Cloudflare records** in [dns.md](dns.md): 4 NS records for `qa`, and the 2
 validation CNAMEs.
 
-**4. Confirm the alerts subscription.** AWS emails the alert address a link titled "AWS
-Notification - Subscription Confirmation". Click it.
-
-**5. Wait for the certificate.** Usually minutes after the CNAMEs resolve:
+**4. Confirm the alerts subscription from the command line.** AWS emails the alert address
+"AWS Notification - Subscription Confirmation". Don't click its link: a subscription confirmed
+by a click can be cancelled by anyone who clicks the unsubscribe link in any alert. Copy the
+link instead. The token is the long value after `Token=`, up to the next `&`. Then, still in
+`infra/bootstrap`:
 
 ```bash
-aws acm list-certificates --profile portfolio-read \
-  --query "CertificateSummaryList[?DomainName=='spellcaster.foo'].Status"
+AWS_PROFILE=portfolio-admin aws sns confirm-subscription --region us-east-1 \
+  --topic-arn "$(AWS_PROFILE=portfolio-admin terraform output -raw alerts_topic_arn)" \
+  --token <token> --authenticate-on-unsubscribe true
+```
+
+It prints the subscription's ARN. Check the protection took: this should print `true`.
+
+```bash
+AWS_PROFILE=portfolio-admin aws sns get-subscription-attributes --region us-east-1 \
+  --subscription-arn <the ARN it printed> --query Attributes.ConfirmationWasAuthenticated
+```
+
+**5. Wait for both certificates.** Usually minutes after the Cloudflare records resolve. The
+QA certificate validates by itself once the `qa` NS records are in:
+
+```bash
+aws acm list-certificates --profile portfolio-read --region us-east-1 \
+  --query "CertificateSummaryList[].[DomainName,Status]"
 ```
 
 **6. Give GitHub the names it needs.** Each command reads the value from Terraform, so
@@ -113,16 +141,34 @@ nothing is printed or pasted. Run them in `infra/bootstrap`:
 ```bash
 AWS_PROFILE=portfolio-admin terraform output -raw state_bucket | gh secret set TF_STATE_BUCKET --repo matt-spellcaster/spellcaster-site-WIP
 AWS_PROFILE=portfolio-admin terraform output -raw production_role_arn | gh secret set AWS_ROLE_ARN --env production --repo matt-spellcaster/spellcaster-site-WIP
-AWS_PROFILE=portfolio-admin terraform output -raw qa_role_arn | gh secret set AWS_ROLE_ARN --env qa --repo matt-spellcaster/spellcaster-site-WIP
+aws sts get-caller-identity --profile portfolio-admin --query Account --output text | gh secret set AWS_ACCOUNT_ID --repo matt-spellcaster/spellcaster-site-WIP
 ```
 
-The QA password stays in SSM (`/portfolio/qa/basic-auth-password`), not in GitHub.
+`AWS_ACCOUNT_ID` is there so the jobs that use AWS can mask it in their logs
+(`::add-mask::`). Bucket names and AWS error messages contain it, and GitHub masks only
+whole secrets, so a masked role ARN doesn't hide it.
 
-**7. Check the roles:** `python3 -I scripts/ci/iam_policy_tests.py` (see above).
+Then lock the `qa` environment, so no branch can use it (and so assume `portfolio-qa`) until
+M4c. By then production's distribution holds `spellcaster.foo` and `www` (see "Two things
+IAM can't fence" above). Keeping the role ARN out of GitHub isn't enough on its own, because
+the ARN can be worked out.
+
+```bash
+echo '{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}' \
+  | gh api -X PUT repos/matt-spellcaster/spellcaster-site-WIP/environments/qa --input -
+gh api repos/matt-spellcaster/spellcaster-site-WIP/environments/qa/deployment-branch-policies --jq .total_count
+```
+
+The second command should print `0`: custom branch rules are on, and none exist, so no
+branch matches. M4c adds the `qa` role ARN and the branches that may deploy. The QA password
+stays in SSM (`/portfolio/qa/basic-auth-password`), not in GitHub.
+
+**7. Check the roles,** from the repository root: `cd ../..`, then
+`python3 -I scripts/ci/iam_policy_tests.py` (see above).
 
 **Done when** the IAM checks pass, `dig +short NS qa.spellcaster.foo` shows four
-`awsdns` servers, `dig +short TXT _dmarc.qa.spellcaster.foo` shows `p=reject`, and the
-certificate is `ISSUED`.
+`awsdns` servers, `dig +short TXT _dmarc.qa.spellcaster.foo` shows `p=reject`, and both
+certificates are `ISSUED`.
 
 ## Changing bootstrap later
 

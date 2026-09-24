@@ -3,11 +3,12 @@
 # QA stack: its name servers are what Cloudflare points at.
 #
 # The records below are fixed, and the QA role can't change them: it may only write A/AAAA
-# at the zone apex and ACM's validation CNAMEs (see ci_roles.tf).
+# at the zone apex (see ci_roles.tf). The QA certificate's validation record is here too
+# (certificate.tf).
 
 resource "aws_route53_zone" "qa" {
   name    = local.qa_domain
-  comment = "QA site. Delegated from Cloudflare; the QA role writes only A/AAAA and ACM CNAMEs."
+  comment = "QA site. Delegated from Cloudflare; the QA role writes only A/AAAA at the apex."
 
   lifecycle {
     prevent_destroy = true

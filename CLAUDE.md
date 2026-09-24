@@ -79,7 +79,7 @@ Matthew applies `infra/bootstrap` (`docs/aws.md`); after any change to its CI ro
 - `.devcontainer/Dockerfile`: Node and Playwright versions must match `.node-version` and
   `package.json` (a unit test checks).
 - `infra/bootstrap/`: the Terraform Matthew applies by hand (state, OIDC, the CI roles, the
-  qa zone, the production certificate, CloudFront policies, alerts). `infra/envs/` (CI) comes
+  qa zone, both certificates, CloudFront policies, alerts). `infra/envs/` (CI) comes
   in M4b and M4c. Every root commits a `.terraform.lock.hcl` for linux_amd64 and darwin_arm64.
   Accepted Checkov findings, each with a reason, are in `infra/.checkov.yaml`.
 - `docs/aws.md` (accounts, roles, bring-up) and `docs/dns.md` (the Cloudflare records).

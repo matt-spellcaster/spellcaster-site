@@ -33,8 +33,7 @@ env:
   ACTIONLINT_SHA256: '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8' # linux_amd64 tarball
   # Terraform's checksums come from HashiCorp's signed SHA256SUMS (signature checked when pinned).
   TERRAFORM_VERSION: '1.16.3'
-  TERRAFORM_SHA256_AMD64: '093b6ae9a2228af5029c41606bc96eb583553528aad1bfe7e0b4d62fc91e25d8'
-  TERRAFORM_SHA256_ARM64: 'b6b293550af7a6a7ffd867a04900ce161db86ec9407b234a636c2adbae2ca9f0'
+  TERRAFORM_SHA256: '093b6ae9a2228af5029c41606bc96eb583553528aad1bfe7e0b4d62fc91e25d8' # linux_amd64 zip
   TFLINT_VERSION: '0.64.0'
   TFLINT_SHA256: 'cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537' # linux_amd64 zip
   CHECKOV_VERSION: '3.3.19'
@@ -287,6 +286,7 @@ jobs:
   terraform:
     name: Terraform
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -298,26 +298,38 @@ jobs:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
       - name: Install Terraform and TFLint (checksums verified)
-        run: scripts/ci/install_terraform.sh amd64
+        run: scripts/ci/install_terraform.sh
       - name: Format, validate, lint and scan the infrastructure
+        env:
+          # The roots share one provider download. The cache lives only for this job.
+          TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/tf-plugins
         run: |
-          mkdir -p results
+          mkdir -p results "$TF_PLUGIN_CACHE_DIR"
           set +e
           code=0
           terraform fmt -check -recursive -diff infra || code=1
-          # Every root commits its provider lock file, so the lock files find the roots.
-          roots=$(find infra -name .terraform.lock.hcl -exec dirname {} \; | sort)
+          # A root is a directory of .tf files outside infra/modules, and each one must commit
+          # its provider lock file, so CI installs exactly the providers that were reviewed.
+          roots=$(find infra -name '*.tf' -not -path '*/.terraform/*' -not -path 'infra/modules/*' \
+            -exec dirname {} \; | sort -u)
           [ -n "$roots" ] || { echo "::error::no Terraform roots found under infra/"; code=1; }
           for dir in $roots; do
             echo "::group::$dir"
-            # No backend and no credentials: this checks the code, not what's deployed.
-            (cd "$dir" && terraform init -backend=false -input=false -lockfile=readonly > /dev/null \
-              && terraform validate -no-color) || code=1
-            tflint --chdir "$dir" --config "$GITHUB_WORKSPACE/infra/.tflint.hcl" --format compact || code=1
+            if [ -f "$dir/.terraform.lock.hcl" ]; then
+              # No backend and no credentials: this checks the code, not what's deployed.
+              (cd "$dir" && terraform init -backend=false -input=false -lockfile=readonly > /dev/null \
+                && terraform validate -no-color) || code=1
+              tflint --chdir "$dir" --config "$GITHUB_WORKSPACE/infra/.tflint.hcl" --format compact || code=1
+            else
+              echo "::error::$dir has no .terraform.lock.hcl (run terraform init there and commit it)"
+              code=1
+            fi
             echo "::endgroup::"
           done
-          uvx "checkov@${CHECKOV_VERSION}" -d infra --config-file infra/.checkov.yaml -o json \
-            > results/terraform-checkov.json || code=1
+          # Checkov's version is pinned; its dependencies resolve only to releases at least 7
+          # days old, the same rule as npm's min-release-age.
+          uvx --exclude-newer "$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" "checkov@${CHECKOV_VERSION}" \
+            -d infra --config-file infra/.checkov.yaml -o json > results/terraform-checkov.json || code=1
           failed=$(python3 -c "
           import json
           r = json.load(open('results/terraform-checkov.json'))

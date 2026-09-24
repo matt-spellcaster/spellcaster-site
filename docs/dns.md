@@ -48,6 +48,7 @@ fail to resolve.
 | TTL | Auto |
 
 Keep both CNAMEs for as long as the site exists: ACM renews the certificate through them.
+The QA certificate needs nothing here: its validation record is in the qa zone.
 
 ## Checking
 

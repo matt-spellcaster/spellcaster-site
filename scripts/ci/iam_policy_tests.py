@@ -13,7 +13,7 @@ Run it on your Mac after applying infra/bootstrap. Read-only access is enough:
     python3 -I scripts/ci/iam_policy_tests.py --profile portfolio-read
 
 It needs the AWS CLI. Exit codes: 0 every check passed, 1 a check failed, 2 it couldn't run.
-Nothing it prints or writes names the account: resources are shown as {placeholders}.
+Nothing it prints names the account: resources are shown as {placeholders}.
 """
 
 from __future__ import annotations
@@ -21,10 +21,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Callable
 
 # The same values as infra/bootstrap's variables (tests/ci checks they agree).
@@ -77,9 +77,9 @@ def records(types: list[str], names: list[str]) -> dict[str, list[str]]:
     }
 
 
-def certificate_request(domains: list[str], method: str = "DNS", export: str = "DISABLED"):
-    return {"acm:DomainNames": domains, "acm:ValidationMethod": method, "acm:Export": export,
-            **new_tags("qa")}
+def certificate_request(env: str, domains: list[str]) -> dict[str, str | list[str]]:
+    return {"acm:DomainNames": domains, "acm:ValidationMethod": "DNS", "acm:Export": "DISABLED",
+            **new_tags(env)}
 
 
 def _cases() -> list[Case]:
@@ -96,6 +96,8 @@ def _cases() -> list[Case]:
         c(qa, "deny", "s3:PutBucketPolicy", "{state}", "change the state bucket"),
         c(prod, "allow", "s3:PutObject", "{state}/envs/prod/terraform.tfstate", "write production state"),
         c(prod, "allow", "s3:PutObject", "{state}/envs/prod/terraform.tfstate.tflock", "take the production lock"),
+        c(prod, "allow", "s3:DeleteObject", "{state}/envs/prod/terraform.tfstate.tflock",
+          "release the production lock"),
         c(prod, "deny", "s3:GetObject", "{state}/envs/qa/terraform.tfstate", "read QA state"),
         c(prod, "deny", "s3:GetObject", "{state}/bootstrap/terraform.tfstate", "read bootstrap state"),
         # --- Site buckets: by name ------------------------------------------------------
@@ -112,6 +114,7 @@ def _cases() -> list[Case]:
         c(prod, "allow", "s3:DeleteObject", "{prod_bucket}/_astro/old.js", "prune old files"),
         c(prod, "guardrail", "s3:DeleteBucket", "{prod_bucket}", "delete the production bucket"),
         c(prod, "guardrail", "s3:DeleteObjectVersion", "{prod_bucket}/index.html", "erase production's history"),
+        c(prod, "guardrail", "s3:PutLifecycleConfiguration", "{prod_bucket}", "expire production's history"),
         c(prod, "deny", "s3:PutObject", "{qa_bucket}/index.html", "publish to QA"),
         # --- CloudFront: by the Environment tag --------------------------------------------
         c(qa, "allow", "cloudfront:CreateDistribution", "*", "create a QA distribution", new_tags(qa)),
@@ -123,7 +126,9 @@ def _cases() -> list[Case]:
         c(qa, "allow", "cloudfront:PublishFunction", "{function}", "publish the QA function", tagged(qa)),
         c(qa, "allow", "cloudfront:GetDistributionConfig", "{distribution}", "read any distribution", tagged(prod)),
         c(qa, "deny", "cloudfront:CreateDistribution", "*", "create an untagged distribution"),
-        c(qa, "deny", "cloudfront:CreateDistribution", "*", "create a production distribution", new_tags(prod)),
+        c(qa, "guardrail", "cloudfront:CreateDistribution", "*", "create a production distribution",
+          new_tags(prod)),
+        c(qa, "guardrail", "cloudfront:CreateFunction", "*", "create a production function", new_tags(prod)),
         c(qa, "deny", "cloudfront:CreateDistribution", "*", "add a tag key outside the four",
           new_tags(qa, TAG_KEYS + ["Owner"])),
         c(qa, "deny", "cloudfront:UpdateDistribution", "{distribution}", "change production's distribution",
@@ -135,7 +140,11 @@ def _cases() -> list[Case]:
         c(qa, "deny", "cloudfront:UpdateFunction", "{function}", "change production's function", tagged(prod)),
         c(qa, "guardrail", "cloudfront:TagResource", "{distribution}", "re-tag production's distribution as QA",
           {**tagged(prod), **new_tags(qa, ["Environment"])}),
+        c(qa, "guardrail", "cloudfront:TagResource", "{function}", "hand its own function to production",
+          {**tagged(qa), **new_tags(prod, ["Environment"])}),
         c(qa, "guardrail", "cloudfront:UntagResource", "{distribution}", "drop the Environment tag",
+          {**tagged(qa), "aws:TagKeys": ["Environment"]}),
+        c(qa, "guardrail", "cloudfront:UntagResource", "{function}", "drop the function's Environment tag",
           {**tagged(qa), "aws:TagKeys": ["Environment"]}),
         c(qa, "guardrail", "cloudfront:AssociateAlias", "{distribution}", "move a domain onto QA", tagged(qa)),
         c(qa, "guardrail", "cloudfront:UpdateDomainAssociation", "{distribution}", "move a domain onto QA",
@@ -148,33 +157,36 @@ def _cases() -> list[Case]:
           tagged(prod)),
         c(prod, "allow", "cloudfront:CreateInvalidation", "{distribution}", "invalidate production's cache",
           tagged(prod)),
+        c(prod, "allow", "cloudfront:CreateFunction", "*", "create the production function", new_tags(prod)),
+        c(prod, "allow", "cloudfront:PublishFunction", "{function}", "publish the production function",
+          tagged(prod)),
+        c(prod, "allow", "cloudfront:TagResource", "{distribution}", "update the Repository tag",
+          {**tagged(prod), "aws:TagKeys": ["Repository"]}),
         c(prod, "guardrail", "cloudfront:DeleteDistribution", "{distribution}", "delete the production distribution",
           tagged(prod)),
         c(prod, "deny", "cloudfront:UpdateDistribution", "{distribution}", "change QA's distribution", tagged(qa)),
-        c(prod, "deny", "cloudfront:CreateDistribution", "*", "create a QA distribution", new_tags(qa)),
+        c(prod, "guardrail", "cloudfront:CreateDistribution", "*", "create a QA distribution", new_tags(qa)),
         c(prod, "guardrail", "cloudfront:TagResource", "{distribution}", "re-tag QA's distribution as production",
           {**tagged(qa), **new_tags(prod, ["Environment"])}),
+        c(prod, "guardrail", "cloudfront:TagResource", "{distribution}", "hand its own distribution to QA",
+          {**tagged(prod), **new_tags(qa, ["Environment"])}),
         c(prod, "guardrail", "cloudfront:AssociateAlias", "{distribution}", "move a domain", tagged(prod)),
         c(prod, "guardrail", "cloudfront:UpdateResponseHeadersPolicy", "*", "weaken the security headers"),
-        # --- Certificates ----------------------------------------------------------------
-        c(qa, "allow", "acm:RequestCertificate", "*", "request the QA certificate", certificate_request([QA_DOMAIN])),
-        c(qa, "allow", "acm:AddTagsToCertificate", "{certificate}", "tag the new QA certificate", new_tags(qa)),
-        c(qa, "allow", "acm:DeleteCertificate", "{certificate}", "delete the QA certificate", tagged(qa)),
+        # --- Certificates: bootstrap issues both, CI only reads them -----------------------
+        c(qa, "allow", "acm:ListCertificates", "*", "find the QA certificate"),
         c(qa, "allow", "acm:DescribeCertificate", "{certificate}", "read a certificate", tagged(prod)),
-        c(qa, "deny", "acm:RequestCertificate", "*", "a certificate for the apex", certificate_request([DOMAIN])),
-        c(qa, "deny", "acm:RequestCertificate", "*", "a certificate that adds the apex",
-          certificate_request([QA_DOMAIN, DOMAIN])),
-        c(qa, "deny", "acm:RequestCertificate", "*", "a certificate validated by email",
-          certificate_request([QA_DOMAIN], method="EMAIL")),
-        c(qa, "guardrail", "acm:RequestCertificate", "*", "an exportable certificate",
-          certificate_request([QA_DOMAIN], export="ENABLED")),
+        c(prod, "allow", "acm:GetCertificate", "{certificate}", "look up the issued certificate", tagged(prod)),
+        c(qa, "guardrail", "acm:RequestCertificate", "*", "request a certificate",
+          certificate_request(qa, [QA_DOMAIN])),
+        c(qa, "guardrail", "acm:DeleteCertificate", "{certificate}", "delete the QA certificate", tagged(qa)),
         c(qa, "guardrail", "acm:ExportCertificate", "{certificate}", "export a private key", tagged(qa)),
-        c(qa, "deny", "acm:DeleteCertificate", "{certificate}", "delete the production certificate", tagged(prod)),
         c(qa, "guardrail", "acm:AddTagsToCertificate", "{certificate}", "re-tag the production certificate",
           {**tagged(prod), **new_tags(qa, ["Environment"])}),
+        c(qa, "guardrail", "acm:RemoveTagsFromCertificate", "{certificate}", "drop the certificate's Environment tag",
+          {**tagged(qa), "aws:TagKeys": ["Environment"]}),
         c(prod, "allow", "acm:DescribeCertificate", "{certificate}", "wait for the certificate", tagged(prod)),
         c(prod, "guardrail", "acm:RequestCertificate", "*", "request a certificate",
-          {"acm:DomainNames": [DOMAIN], "acm:ValidationMethod": "DNS", **new_tags(prod)}),
+          certificate_request(prod, [DOMAIN])),
         c(prod, "guardrail", "acm:DeleteCertificate", "{certificate}", "delete the production certificate",
           tagged(prod)),
         # --- DNS (the qa zone) -------------------------------------------------------------
@@ -182,7 +194,7 @@ def _cases() -> list[Case]:
           records(["A"], [QA_DOMAIN])),
         c(qa, "allow", "route53:ChangeResourceRecordSets", "{zone}", "point qa at CloudFront (AAAA)",
           records(["AAAA"], [QA_DOMAIN])),
-        c(qa, "allow", "route53:ChangeResourceRecordSets", "{zone}", "add ACM's validation record",
+        c(qa, "deny", "route53:ChangeResourceRecordSets", "{zone}", "change the certificate's validation record",
           records(["CNAME"], [VALIDATION_NAME])),
         c(qa, "deny", "route53:ChangeResourceRecordSets", "{zone}", "change the DMARC record",
           records(["TXT"], [f"_dmarc.{QA_DOMAIN}"])),
@@ -196,8 +208,6 @@ def _cases() -> list[Case]:
           records(["A"], [f"www.{QA_DOMAIN}"])),
         c(qa, "deny", "route53:ChangeResourceRecordSets", "{zone}", "a CNAME at qa itself",
           records(["CNAME"], [QA_DOMAIN])),
-        c(qa, "deny", "route53:ChangeResourceRecordSets", "{zone}", "a CNAME that isn't ACM's shape",
-          records(["CNAME"], [f"_short.{QA_DOMAIN}"])),
         c(qa, "guardrail", "route53:DeleteHostedZone", "{zone}", "delete the qa zone"),
         c(qa, "guardrail", "route53:CreateHostedZone", "*", "create a hosted zone"),
         c(prod, "guardrail", "route53:ChangeResourceRecordSets", "{zone}", "change any DNS record",
@@ -214,6 +224,8 @@ def _cases() -> list[Case]:
         c(prod, "guardrail", "iam:UpdateAssumeRolePolicy", "{role}", "widen its own trust"),
         c(prod, "guardrail", "organizations:LeaveOrganization", "*", "leave the organization"),
         c(prod, "guardrail", "budgets:ModifyBudget", "*", "change the budget"),
+        c(qa, "allow", "sns:ListTopics", "*", "find the alerts topic"),
+        c(prod, "allow", "sns:ListTopics", "*", "find the alerts topic"),
         c(qa, "deny", "sns:Publish", "*", "send alerts"),
     ]
 
@@ -338,7 +350,9 @@ def cli(profile: str | None) -> Aws:
             cmd += ["--profile", profile]
         p = subprocess.run(cmd, capture_output=True, text=True, env={**os.environ, "AWS_PAGER": ""})
         if p.returncode != 0:
-            raise RuntimeError(f"aws {' '.join(args[:2])} failed: {p.stderr.strip()}")
+            # AWS errors name the caller (arn:aws:sts::<account>:...), so hide the account.
+            error = re.sub(r"\b\d{12}\b", "{account}", p.stderr.strip())
+            raise RuntimeError(f"aws {' '.join(args[:2])} failed: {error}")
         return json.loads(p.stdout or "{}")
     return run
 
@@ -374,7 +388,6 @@ def run_checks(aws: Aws) -> list[dict]:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--profile", default="portfolio-read", help="AWS CLI profile (default: portfolio-read)")
-    p.add_argument("--out", type=Path, help="also write the results here as JSON")
     args = p.parse_args(argv)
     try:
         rows = run_checks(cli(args.profile))
@@ -385,9 +398,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{'ok  ' if row['ok'] else 'FAIL'}  {row['role']:<10}  {row['check']:<15}  {row['detail']}")
     failed = sum(not r["ok"] for r in rows)
     print(f"{len(rows)} checks, {failed} failed")
-    if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps({"checks": rows, "failed": failed}, indent=2) + "\n")
     return 1 if failed else 0
 
 

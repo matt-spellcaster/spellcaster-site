@@ -1,6 +1,7 @@
 # Checkov findings accepted on purpose, each with its reason. This is a small static site in
 # one account, where a few dollars a month matters; revisit if that changes.
-# CI runs: checkov -d infra --framework terraform --config-file infra/.checkov.yaml
+# CI runs checkov -d infra with this file as --config-file (the Terraform job in
+# .github/workflows/compliance.yml).
 compact: true
 quiet: true
 framework:
@@ -20,8 +21,5 @@ skip-check:
   # only ever answers for a password-protected test site.
   - CKV2_AWS_38 # Route 53 DNSSEC
   - CKV2_AWS_39 # Route 53 query logging
-  # The CI roles read configuration account-wide (list calls can't be scoped, and plans must
-  # refresh). Every write is scoped by name or by the Environment tag, the creates that
-  # can't take a resource ARN are conditioned on their tags, and the guardrails policy
-  # denies the rest (infra/bootstrap/ci_roles.tf, scripts/ci/iam_policy_tests.py).
-  - CKV_AWS_356 # "*" as a resource for restrictable actions
+# One more is skipped where it applies, not here: CKV_AWS_356 on the CI roles' access policy
+# (infra/bootstrap/ci_roles.tf says why), so every other policy is still checked.

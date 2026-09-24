@@ -8,17 +8,6 @@ variable "account_id" {
   }
 }
 
-variable "region" {
-  description = "Region for everything here. CloudFront certificates must be in us-east-1."
-  type        = string
-  default     = "us-east-1"
-
-  validation {
-    condition     = var.region == "us-east-1"
-    error_message = "CloudFront only uses certificates from us-east-1, and the org's RegionLock SCP allows only us-east-1."
-  }
-}
-
 variable "domain" {
   description = "The site's domain. Its DNS stays at Cloudflare; only qa.<domain> is delegated here."
   type        = string

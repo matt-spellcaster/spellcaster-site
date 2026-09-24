@@ -37,9 +37,21 @@ output "production_certificate_status" {
   value       = aws_acm_certificate.production.status
 }
 
-# For infra/envs (M4b); none of these is secret.
+output "qa_certificate_status" {
+  description = "PENDING_VALIDATION until Cloudflare delegates qa, then ISSUED."
+  value       = aws_acm_certificate.qa.status
+}
+
+output "alerts_topic_arn" {
+  description = "For confirming the alert email subscription (docs/aws.md, step 4)."
+  value       = aws_sns_topic.alerts.arn
+}
+
+# For infra/envs; none of these is secret. The CI roles can't read this state, so infra/envs
+# looks up by name what a data source allows (the zone, the header policies, the topic) and
+# takes the origin access control's ID, which has no lookup by name, as an input.
 output "shared" {
-  description = "IDs infra/envs uses."
+  description = "What infra/envs needs from bootstrap."
   value = {
     origin_access_control_id = aws_cloudfront_origin_access_control.site.id
     response_headers_policy  = { for k, p in aws_cloudfront_response_headers_policy.site : k => p.id }

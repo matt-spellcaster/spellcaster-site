@@ -33,8 +33,8 @@ and open the address it prints.
 ## Infrastructure
 
 `infra/bootstrap` sets up the AWS account: Terraform state, GitHub's OIDC trust, one CI role
-per environment, the `qa.spellcaster.foo` zone, the production certificate and the shared
-CloudFront policies. It's applied by hand; [docs/aws.md](docs/aws.md) has the steps and
+per environment, the `qa.spellcaster.foo` zone, both certificates and the shared CloudFront
+policies. It's applied by hand; [docs/aws.md](docs/aws.md) has the steps and
 [docs/dns.md](docs/dns.md) the Cloudflare records. The CI roles are fenced by name and by an
 `Environment` tag, and `scripts/ci/iam_policy_tests.py` checks what each may and may not do.
 

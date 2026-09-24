@@ -5,8 +5,9 @@
 #
 # Both run Terraform on their own state key and their own site, and nothing else. What they
 # may touch is fenced by name (buckets, state keys, alarms) or by the Environment tag
-# (CloudFront, certificates), and the guardrails policy denies what they must never do,
-# whatever the allow list says. scripts/ci/iam_policy_tests.py checks both.
+# (CloudFront), and the guardrails policy denies what they must never do, whatever the allow
+# list says. Neither may change a certificate: bootstrap issues both. scripts/ci/
+# iam_policy_tests.py checks all of it.
 
 locals {
   oidc_host = "token.actions.githubusercontent.com"
@@ -14,14 +15,12 @@ locals {
   # GitHub's immutable subject is repo:<owner>@<owner id>/<name>@<repo id>:<context>. The IDs
   # never change, so the name is a wildcard: renaming the repository (say, dropping "-WIP")
   # doesn't lock CI out, and a new repository that takes an old name has a different ID.
-  # Names can't contain "@" or "/", so the wildcard can't reach past its own segment.
+  # The pattern ends in "@<repo id>:environment:<env>", and GitHub encodes a ":" in an
+  # environment name, so only this repository's own environments match.
   subject_prefix = "repo:${local.owner}@${var.github_owner_id}/*@${var.github_repo_id}"
 
   cloudfront_distributions = "arn:aws:cloudfront::${local.account_id}:distribution/*"
   cloudfront_functions     = "arn:aws:cloudfront::${local.account_id}:function/*"
-  certificates             = "arn:aws:acm:${var.region}:${local.account_id}:certificate/*"
-  # ACM's validation records are _<32 hex characters>.<name>; each ? is one character.
-  acm_validation_name = "_${join("", [for _ in range(32) : "?"])}.${local.qa_domain}"
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -68,6 +67,12 @@ resource "aws_iam_role" "ci" {
 
 data "aws_iam_policy_document" "ci_access" {
   for_each = local.environments
+  # checkov:skip=CKV_AWS_356:The Read statement is read-only and account-wide (list calls can't be scoped, and plans must refresh), and CreateDistribution and CreateFunction take no resource ARN, so they're conditioned on their tags. Every write is scoped by name or by the Environment tag.
+
+  # What only this environment may do (below).
+  source_policy_documents = [
+    each.key == "qa" ? data.aws_iam_policy_document.qa_access.json : data.aws_iam_policy_document.production_access.json
+  ]
 
   # Terraform state: its own key only. Listing the bucket lets Terraform tell "no state yet"
   # apart from "access denied"; it shows key names, never contents.
@@ -92,6 +97,7 @@ data "aws_iam_policy_document" "ci_access" {
     sid = "Read"
     actions = [
       "acm:DescribeCertificate",
+      "acm:GetCertificate",
       "acm:ListCertificates",
       "acm:ListTagsForCertificate",
       "cloudfront:Describe*",
@@ -107,6 +113,7 @@ data "aws_iam_policy_document" "ci_access" {
       "route53:ListTagsForResource",
       "sns:GetTopicAttributes",
       "sns:ListTagsForResource",
+      "sns:ListTopics",
       "tag:GetResources",
     ]
     resources = ["*"]
@@ -210,128 +217,45 @@ data "aws_iam_policy_document" "ci_access" {
       values   = local.tag_keys
     }
   }
+}
 
-  # QA only: its own certificate, DNS records and Basic-auth password.
-  dynamic "statement" {
-    for_each = each.key == "qa" ? [1] : []
-    content {
-      sid       = "QaCertificateRequest"
-      actions   = ["acm:RequestCertificate"]
-      resources = ["*"]
-      condition {
-        test     = "ForAllValues:StringEquals"
-        variable = "acm:DomainNames"
-        values   = [local.qa_domain]
-      }
-      condition {
-        test     = "StringEquals"
-        variable = "acm:ValidationMethod"
-        values   = ["DNS"]
-      }
-      condition {
-        test     = "StringEquals"
-        variable = "aws:RequestTag/Environment"
-        values   = ["qa"]
-      }
-      condition {
-        test     = "ForAllValues:StringEquals"
-        variable = "aws:TagKeys"
-        values   = local.tag_keys
-      }
+# QA only: its site records and its Basic-auth password.
+data "aws_iam_policy_document" "qa_access" {
+  statement {
+    sid       = "QaSiteRecords"
+    actions   = ["route53:ChangeResourceRecordSets"]
+    resources = [aws_route53_zone.qa.arn]
+    condition {
+      test     = "ForAllValues:StringEquals"
+      variable = "route53:ChangeResourceRecordSetsRecordTypes"
+      values   = ["A", "AAAA"]
+    }
+    condition {
+      test     = "ForAllValues:StringEquals"
+      variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
+      values   = [local.qa_domain]
     }
   }
-  dynamic "statement" {
-    for_each = each.key == "qa" ? [1] : []
-    content {
-      # Tagging happens as part of the request, before the certificate has any tags.
-      sid       = "QaCertificateTag"
-      actions   = ["acm:AddTagsToCertificate"]
-      resources = [local.certificates]
-      condition {
-        test     = "StringEquals"
-        variable = "aws:RequestTag/Environment"
-        values   = ["qa"]
-      }
-      condition {
-        test     = "ForAllValues:StringEquals"
-        variable = "aws:TagKeys"
-        values   = local.tag_keys
-      }
-    }
+  statement {
+    # Created by hand, so the value never enters Terraform state. alias/aws/ssm needs no
+    # KMS grant: its key policy lets anyone in the account decrypt through SSM.
+    sid       = "QaPassword"
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:${local.region}:${local.account_id}:parameter/portfolio/qa/basic-auth-password"]
   }
-  dynamic "statement" {
-    for_each = each.key == "qa" ? [1] : []
-    content {
-      sid       = "QaCertificateManage"
-      actions   = ["acm:DeleteCertificate", "acm:RemoveTagsFromCertificate"]
-      resources = [local.certificates]
-      condition {
-        test     = "StringEquals"
-        variable = "aws:ResourceTag/Environment"
-        values   = ["qa"]
-      }
-    }
-  }
-  dynamic "statement" {
-    for_each = each.key == "qa" ? [1] : []
-    content {
-      sid       = "QaSiteRecords"
-      actions   = ["route53:ChangeResourceRecordSets"]
-      resources = [aws_route53_zone.qa.arn]
-      condition {
-        test     = "ForAllValues:StringEquals"
-        variable = "route53:ChangeResourceRecordSetsRecordTypes"
-        values   = ["A", "AAAA"]
-      }
-      condition {
-        test     = "ForAllValues:StringEquals"
-        variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
-        values   = [local.qa_domain]
-      }
-    }
-  }
-  dynamic "statement" {
-    for_each = each.key == "qa" ? [1] : []
-    content {
-      sid       = "QaValidationRecords"
-      actions   = ["route53:ChangeResourceRecordSets"]
-      resources = [aws_route53_zone.qa.arn]
-      condition {
-        test     = "ForAllValues:StringEquals"
-        variable = "route53:ChangeResourceRecordSetsRecordTypes"
-        values   = ["CNAME"]
-      }
-      condition {
-        test     = "ForAllValues:StringLike"
-        variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
-        values   = [local.acm_validation_name]
-      }
-    }
-  }
-  dynamic "statement" {
-    for_each = each.key == "qa" ? [1] : []
-    content {
-      # Created by hand, so the value never enters Terraform state. alias/aws/ssm needs no
-      # KMS grant: its key policy lets anyone in the account decrypt through SSM.
-      sid       = "QaPassword"
-      actions   = ["ssm:GetParameter"]
-      resources = ["arn:aws:ssm:${var.region}:${local.account_id}:parameter/portfolio/qa/basic-auth-password"]
-    }
-  }
+}
 
-  # Production only: its traffic alarms.
-  dynamic "statement" {
-    for_each = each.key == "production" ? [1] : []
-    content {
-      sid = "ProductionAlarms"
-      actions = [
-        "cloudwatch:DeleteAlarms",
-        "cloudwatch:PutMetricAlarm",
-        "cloudwatch:TagResource",
-        "cloudwatch:UntagResource",
-      ]
-      resources = ["arn:aws:cloudwatch:${var.region}:${local.account_id}:alarm:portfolio-production-*"]
-    }
+# Production only: its traffic alarms.
+data "aws_iam_policy_document" "production_access" {
+  statement {
+    sid = "ProductionAlarms"
+    actions = [
+      "cloudwatch:DeleteAlarms",
+      "cloudwatch:PutMetricAlarm",
+      "cloudwatch:TagResource",
+      "cloudwatch:UntagResource",
+    ]
+    resources = ["arn:aws:cloudwatch:${local.region}:${local.account_id}:alarm:portfolio-production-*"]
   }
 }
 
@@ -339,6 +263,8 @@ data "aws_iam_policy_document" "ci_access" {
 
 data "aws_iam_policy_document" "ci_guardrails" {
   for_each = local.environments
+
+  source_policy_documents = each.key == "production" ? [data.aws_iam_policy_document.production_guardrails.json] : []
 
   statement {
     sid       = "NoIdentityOrgOrBilling"
@@ -377,18 +303,13 @@ data "aws_iam_policy_document" "ci_guardrails" {
     resources = ["*"]
   }
 
-  # Tags are the fence, so a role may not move a resource across it: no tagging anything
-  # that carries another environment's tag. (A new resource has no tags yet, hence the Null
-  # test; the allow list already requires this environment's tag on it.)
+  # Tags are the fence, so a role may not move a resource across it, in either direction:
+  # no tagging anything that carries another environment's tag, and no giving anything
+  # another environment's tag. (A new resource has no tags yet, hence the Null tests.)
   statement {
-    sid    = "NoRetaggingOtherEnvironments"
-    effect = "Deny"
-    actions = [
-      "acm:AddTagsToCertificate",
-      "acm:RemoveTagsFromCertificate",
-      "cloudfront:TagResource",
-      "cloudfront:UntagResource",
-    ]
+    sid       = "NoRetaggingOtherEnvironments"
+    effect    = "Deny"
+    actions   = ["cloudfront:TagResource", "cloudfront:UntagResource"]
     resources = ["*"]
     condition {
       test     = "StringNotEquals"
@@ -402,9 +323,25 @@ data "aws_iam_policy_document" "ci_guardrails" {
     }
   }
   statement {
+    sid       = "NoTaggingIntoOtherEnvironments"
+    effect    = "Deny"
+    actions   = ["cloudfront:CreateDistribution", "cloudfront:CreateFunction", "cloudfront:TagResource"]
+    resources = ["*"]
+    condition {
+      test     = "StringNotEquals"
+      variable = "aws:RequestTag/Environment"
+      values   = [each.key]
+    }
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/Environment"
+      values   = ["false"]
+    }
+  }
+  statement {
     sid       = "NoRemovingTheEnvironmentTag"
     effect    = "Deny"
-    actions   = ["acm:RemoveTagsFromCertificate", "cloudfront:UntagResource"]
+    actions   = ["cloudfront:UntagResource"]
     resources = ["*"]
     condition {
       test     = "ForAnyValue:StringEquals"
@@ -413,24 +350,24 @@ data "aws_iam_policy_document" "ci_guardrails" {
     }
   }
 
-  # A certificate whose private key can leave AWS. The org's DenyExportableCerts SCP says
-  # the same; this keeps it true if the account ever leaves the org.
+  # Bootstrap issues both certificates, so CI never changes one, and no private key can
+  # leave AWS (the org's DenyExportableCerts SCP says the same, in case the account leaves).
   statement {
-    sid       = "NoCertificateExport"
-    effect    = "Deny"
-    actions   = ["acm:ExportCertificate"]
+    sid    = "NoCertificateChanges"
+    effect = "Deny"
+    actions = [
+      "acm:AddTagsToCertificate",
+      "acm:DeleteCertificate",
+      "acm:ExportCertificate",
+      "acm:ImportCertificate",
+      "acm:RemoveTagsFromCertificate",
+      "acm:RenewCertificate",
+      "acm:RequestCertificate",
+      "acm:ResendValidationEmail",
+      "acm:RevokeCertificate",
+      "acm:UpdateCertificateOptions",
+    ]
     resources = ["*"]
-  }
-  statement {
-    sid       = "NoExportableCertificates"
-    effect    = "Deny"
-    actions   = ["acm:RequestCertificate"]
-    resources = ["*"]
-    condition {
-      test     = "StringEquals"
-      variable = "acm:Export"
-      values   = ["ENABLED"]
-    }
   }
 
   statement {
@@ -439,42 +376,34 @@ data "aws_iam_policy_document" "ci_guardrails" {
     actions   = ["route53:CreateHostedZone", "route53:DeleteHostedZone"]
     resources = ["*"]
   }
+}
 
-  # Production can't delete the site or its history, and has no business with certificates
-  # or DNS: bootstrap owns its certificate, and its DNS is at Cloudflare.
-  dynamic "statement" {
-    for_each = each.key == "production" ? [1] : []
-    content {
-      sid       = "NoProductionDeletes"
-      effect    = "Deny"
-      actions   = ["cloudfront:DeleteDistribution", "s3:DeleteBucket", "s3:DeleteObjectVersion"]
-      resources = ["*"]
-    }
+# Production can't delete the site or its history (a lifecycle rule could expire every old
+# version, so it can't set one), and has no business with DNS: its DNS is at Cloudflare.
+data "aws_iam_policy_document" "production_guardrails" {
+  statement {
+    sid    = "NoProductionDeletes"
+    effect = "Deny"
+    actions = [
+      "cloudfront:DeleteDistribution",
+      "s3:DeleteBucket",
+      "s3:DeleteObjectVersion",
+      "s3:PutLifecycleConfiguration",
+    ]
+    resources = ["*"]
   }
-  dynamic "statement" {
-    for_each = each.key == "production" ? [1] : []
-    content {
-      sid    = "NoProductionCertificateOrDnsChanges"
-      effect = "Deny"
-      actions = [
-        "acm:AddTagsToCertificate",
-        "acm:DeleteCertificate",
-        "acm:ImportCertificate",
-        "acm:RemoveTagsFromCertificate",
-        "acm:RenewCertificate",
-        "acm:RequestCertificate",
-        "acm:ResendValidationEmail",
-        "acm:RevokeCertificate",
-        "acm:UpdateCertificateOptions",
-        "route53:Associate*",
-        "route53:Change*",
-        "route53:Create*",
-        "route53:Delete*",
-        "route53:Disassociate*",
-        "route53:Update*",
-      ]
-      resources = ["*"]
-    }
+  statement {
+    sid    = "NoProductionDnsChanges"
+    effect = "Deny"
+    actions = [
+      "route53:Associate*",
+      "route53:Change*",
+      "route53:Create*",
+      "route53:Delete*",
+      "route53:Disassociate*",
+      "route53:Update*",
+    ]
+    resources = ["*"]
   }
 }
 
