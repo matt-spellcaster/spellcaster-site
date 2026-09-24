@@ -1,0 +1,24 @@
+---
+// An underlined text link, the site's one link style outside running text. Kept in one
+// place so they can't drift.
+interface Props {
+  href: string;
+  tone?: 'ink' | 'accent';
+  class?: string;
+}
+
+const { href, tone = 'ink', class: className } = Astro.props;
+---
+
+<a
+  href={href}
+  class:list={[
+    'inline-flex min-h-11 items-center font-sans text-sm underline underline-offset-[5px] transition-colors',
+    tone === 'ink'
+      ? 'text-ink decoration-ink/40 hover:text-accent hover:decoration-accent'
+      : 'text-accent decoration-accent/50 hover:decoration-accent',
+    className,
+  ]}
+>
+  <slot />
+</a>

@@ -1,0 +1,49 @@
+---
+// The sky over the hero: a cool wash from the top of the page and a few stars. It's
+// decorative (aria-hidden); the horizon itself is Horizon.astro, under the pitch. The stars
+// come from a seeded generator, so every build draws the same sky. --sky-intensity in
+// global.css scales all of it, and tests/unit/contrast.test.ts checks the text colours over
+// the wash at its strongest.
+function mulberry32(seed: number): () => number {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const rnd = mulberry32(67);
+const colours = ['#ffffff', '#dbe7ff', '#c9d8ff'] as const;
+// Drawn at a fixed 2560 px wide and centred, so the stars are the same size on every screen.
+const stars = Array.from({ length: 88 }, () => ({
+  x: (rnd() * 2560).toFixed(0),
+  y: (rnd() * 420).toFixed(0),
+  r: (0.4 + rnd() * 0.7).toFixed(1),
+  o: (0.15 + rnd() * 0.7).toFixed(2),
+  c: colours[Math.floor(rnd() * colours.length)],
+}));
+---
+
+<div
+  aria-hidden="true"
+  class="sky pointer-events-none absolute inset-x-0 top-0 -z-10 h-[27.5rem] overflow-hidden"
+>
+  <svg
+    class="absolute top-0 left-1/2 h-[27.5rem] w-[160rem] -translate-x-1/2"
+    viewBox="0 0 2560 440"
+    fill="none"
+  >
+    {stars.map((s) => (
+      <circle cx={s.x} cy={s.y} r={s.r} fill={s.c} opacity={s.o} />
+    ))}
+  </svg>
+</div>
+
+<style>
+  .sky {
+    opacity: var(--sky-intensity);
+    /* The wash, centred on the top edge of the page. */
+    background: radial-gradient(56rem 30rem at 50% 0, rgb(79 127 217 / 0.16), transparent 100%);
+  }
+</style>

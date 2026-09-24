@@ -109,7 +109,7 @@ test.describe('header', () => {
     expect((await style()).filter).toContain('blur(16px)');
 
     await page.emulateMedia({ contrast: 'more' });
-    expect(await style()).toEqual({ filter: 'none', bg: 'rgb(18, 21, 26)' });
+    expect(await style()).toEqual({ filter: 'none', bg: 'rgb(24, 22, 22)' });
 
     await page.emulateMedia({ contrast: 'no-preference', forcedColors: 'active' });
     expect((await style()).filter).toBe('none');

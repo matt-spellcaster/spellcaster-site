@@ -23,10 +23,12 @@ site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The reposi
    each one either bypasses hashing or needs a CSP exception. Code blocks use Prism. The
    only relaxation is `style-src-attr 'unsafe-inline'`. `tests/unit/repo-rules.test.ts`
    and `tests/dist/` enforce this.
-4. **Design.** Follow `docs/design.md` (approved at the M2 gate): dark only, Inter, accent
+4. **Design.** Follow `docs/design.md` (the M2 gate, revised for "Editorial, with sky"):
+   dark only on a warm black, Newsreader for what's read and Inter for the UI, accent
    `#8ab4f8`. Frosted glass only on the header and the mobile menu, never on content, with
-   opaque fallbacks. New colours go in `@theme` in `src/styles/global.css`, where the
-   contrast test sees them.
+   opaque fallbacks. The sky is drawn with gradients only, never a large blur (one crashed
+   WebKit). New colours go in `@theme` in `src/styles/global.css`, where the contrast test
+   sees them.
 5. **Links.** Every internal `href` ends in `/` (for example `/projects/okta-access-review-aws/`).
 6. **Draft copy.** Text Matthew hasn't approved yet starts with `DRAFT:` (on the case study,
    at the start of each section), and facts only he can supply are `[placeholders]`.

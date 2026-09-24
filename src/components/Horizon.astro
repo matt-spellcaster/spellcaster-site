@@ -1,0 +1,67 @@
+---
+// The thin-line horizon under the pitch: the limb of a warm-black planet, lit from behind by
+// two soft blue bands, fading out before the featured project.
+// - Gradients only, no filters. A large blur crashed WebKit's renderer in the phone tests.
+// - Drawn at a fixed 2560 px wide and centred, so the curve and the glow are the same size on
+//   every screen; narrower screens see the middle of it.
+// - Positioned absolutely with top: auto and no positioned ancestor: it sits where it falls
+//   in the hero (under the links) but spans the viewport, and takes no space in the flow.
+const cx = 1280;
+const r = 1720;
+const top = 200; // the limb's highest point, leaving room above it for the glow
+const cy = top + r;
+const fadeEnd = 770;
+---
+
+<div
+  aria-hidden="true"
+  class="horizon pointer-events-none absolute inset-x-0 -z-10 -mt-[8.5rem] h-[50rem] overflow-hidden"
+>
+  <svg class="absolute top-0 left-1/2 h-[50rem] w-[160rem] -translate-x-1/2" viewBox="0 0 2560 800">
+    <defs>
+      <linearGradient
+        id="horizon-fade"
+        gradientUnits="userSpaceOnUse"
+        x1="0"
+        y1={top}
+        x2="0"
+        y2={fadeEnd}
+      >
+        <stop offset="0" stop-color="#fff"></stop>
+        <stop offset="1" stop-color="#000"></stop>
+      </linearGradient>
+      <mask id="horizon-mask">
+        <rect width="2560" height="800" fill="url(#horizon-fade)"></rect>
+      </mask>
+      <!-- The wide haze and the tight limb light: each peaks at the limb and fades outward. -->
+      <radialGradient id="horizon-haze" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={r + 220}>
+        <stop offset={r / (r + 220)} stop-color="#4f7fd9" stop-opacity="0.18"></stop>
+        <stop offset="1" stop-color="#4f7fd9" stop-opacity="0"></stop>
+      </radialGradient>
+      <radialGradient id="horizon-limb" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={r + 70}>
+        <stop offset={r / (r + 70)} stop-color="#6f9fe6" stop-opacity="0.32"></stop>
+        <stop offset="1" stop-color="#6f9fe6" stop-opacity="0"></stop>
+      </radialGradient>
+    </defs>
+    <g mask="url(#horizon-mask)">
+      <rect width="2560" height="800" fill="url(#horizon-haze)"></rect>
+      <rect width="2560" height="800" fill="url(#horizon-limb)"></rect>
+      <circle cx={cx} cy={cy} r={r} class="fill-planet"></circle>
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke="#dbe7ff"
+        stroke-width="1.5"
+        opacity="0.9"
+      ></circle>
+    </g>
+  </svg>
+</div>
+
+<style>
+  .horizon {
+    opacity: var(--sky-intensity);
+  }
+</style>

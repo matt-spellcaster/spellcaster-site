@@ -1,27 +1,27 @@
 ---
 import { site } from '../data/site';
-import LinkButton from './LinkButton.astro';
+import Horizon from './Horizon.astro';
+import TextLink from './TextLink.astro';
 
 const links = [
-  { label: 'GitHub', href: site.github, primary: true },
-  ...(site.linkedin ? [{ label: 'LinkedIn', href: site.linkedin, primary: false }] : []),
-  { label: 'Email', href: `mailto:${site.email}`, primary: false },
+  { label: 'GitHub', href: site.github },
+  ...(site.linkedin ? [{ label: 'LinkedIn', href: site.linkedin }] : []),
+  { label: 'Email', href: `mailto:${site.email}` },
 ];
 ---
 
-<section class="relative pt-32 pb-16 sm:pt-44 sm:pb-24">
-  <h1 class="text-ink text-4xl font-semibold tracking-tight sm:text-6xl">{site.name}</h1>
-  {site.jobTitle && <p class="text-muted mt-3 text-lg sm:text-xl">{site.jobTitle}</p>}
-  <p class="text-ink/90 mt-6 max-w-[62ch] text-lg leading-relaxed sm:text-xl sm:leading-relaxed">
+<!-- The name is in the header (the page's h1), so the page opens on the pitch. -->
+<section class="pt-24 sm:pt-32">
+  {site.jobTitle && <p class="text-muted mb-4 font-sans text-sm">{site.jobTitle}</p>}
+  <p class="text-ink max-w-[24ch] text-[1.75rem] leading-[1.35] tracking-[-0.01em] sm:text-[2.125rem]">
     {site.pitch}
   </p>
-  <ul class="mt-9 flex flex-wrap gap-3">
+  <ul class="mt-5 flex flex-wrap gap-x-6">
     {links.map((link) => (
       <li>
-        <LinkButton href={link.href} variant={link.primary ? 'primary' : 'secondary'}>
-          {link.label}
-        </LinkButton>
+        <TextLink href={link.href}>{link.label}</TextLink>
       </li>
     ))}
   </ul>
+  <Horizon />
 </section>

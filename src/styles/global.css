@@ -2,20 +2,25 @@
 @import './glass.css';
 @import './prose.css';
 
-/* Dark only. tests/unit/contrast.test.ts checks every text colour against every surface,
-   the header's text against the glass with a white image behind it, and line-strong at 3:1. */
+/* Dark only, on a warm black. tests/unit/contrast.test.ts checks every text colour against
+   every surface, against the header glass with a white image behind it, and against the
+   sky's wash behind the hero. */
 @theme {
-  /* Inter, self-hosted through the Fonts API (astro.config.ts). */
+  /* Newsreader for what's read, Inter for the UI. Both are self-hosted through Astro's
+     Fonts API (astro.config.ts). */
+  --font-serif: var(--font-newsreader);
   --font-sans: var(--font-inter);
+  /* The reading column: 48rem of text inside the page padding. */
+  --container-page: 52rem;
 
-  --color-canvas: #0b0d10;
-  --color-surface: #12151a;
-  --color-surface-2: #1a1e24;
-  --color-line: #262b33;
-  /* Outlines that carry meaning, like the boxes in the project card diagrams. */
-  --color-line-strong: #636c7a;
-  --color-ink: #e8eaed;
-  --color-muted: #a3aab5;
+  --color-canvas: #111010;
+  --color-surface: #181616;
+  --color-surface-2: #221f1f;
+  /* The planet's disc in the horizon. Nothing is drawn on it. */
+  --color-planet: #0b0c10;
+  --color-line: #2b2828;
+  --color-ink: #ecebe6;
+  --color-muted: #b0ada5;
   --color-accent: #8ab4f8;
 
   /* The demo's decision colours (M6). */
@@ -24,8 +29,20 @@
   --color-decide: #e6b450;
 }
 
+/* Small uppercase section labels, in the UI face. */
+@utility eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
 :root {
   color-scheme: dark;
   /* In-page links land below the fixed header. */
   scroll-padding-top: 5rem;
+  /* How strong the sky is drawn (the wash, the stars and the horizon), 0 to 1. */
+  --sky-intensity: 0.6;
 }
