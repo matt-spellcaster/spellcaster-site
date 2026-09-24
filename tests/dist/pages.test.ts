@@ -143,7 +143,8 @@ describe('built pages', () => {
 
     it.runIf(page !== '404.html')('has a title, description, canonical and Open Graph image', () => {
       expect(html).toMatch(/<title>[^<]+<\/title>/);
-      expect(html).toMatch(/<meta name="description" content="[^"]{50,}"/);
+      // The home page's description is the pitch, 44 characters; a floor catches an empty one.
+      expect(html).toMatch(/<meta name="description" content="[^"]{40,}"/);
       const canonical = /<link rel="canonical" href="([^"]+)"/.exec(html)?.[1];
       expect(canonical).toBe(`https://spellcaster.foo/${page.replace(/index\.html$/, '')}`);
       const og = /<meta property="og:image" content="https:\/\/spellcaster\.foo(\/og\/[^"]+\.jpg)"/.exec(html)?.[1];

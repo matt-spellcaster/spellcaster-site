@@ -10,10 +10,8 @@ export const site = {
   name: 'Matthew Spell',
   // The optional line under the name. null hides it; it never blocks a launch.
   jobTitle: null as string | null,
+  // Also the home page's meta description (search results, link previews).
   pitch: 'Full stack IT. Here are some things I built.',
-  // The home page's meta description (search results, link previews). Not shown on the page.
-  description:
-    'Matthew Spell does full stack IT. Here are some things he built, with the code on GitHub.',
   email: 'hello@spellcaster.foo',
   github: 'https://github.com/matt-spellcaster',
   linkedin: 'https://www.linkedin.com/in/matthew-spell-065b9483/' as string | null,

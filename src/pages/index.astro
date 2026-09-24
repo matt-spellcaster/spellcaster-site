@@ -25,7 +25,7 @@ const person = {
 
 <Base
   title={site.name}
-  description={site.description}
+  description={site.pitch.replace(/^DRAFT: /, '')}
   ogImage="/og/home.jpg"
   ogImageAlt={`${site.name}: full stack IT portfolio`}
   jsonLd={person}
