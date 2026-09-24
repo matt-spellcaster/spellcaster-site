@@ -1,4 +1,4 @@
-# spellcaster-site
+# spellcaster-site-WIP
 
 Matthew Spell's portfolio site, served at https://spellcaster.foo/. It's an Astro static
 site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The repository is

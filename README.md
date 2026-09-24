@@ -1,4 +1,4 @@
-# spellcaster-site
+# spellcaster-site-WIP
 
 The source of [spellcaster.foo](https://spellcaster.foo/), Matthew Spell's portfolio.
 It's a static [Astro](https://astro.build/) site on S3 and CloudFront, managed with
@@ -12,8 +12,8 @@ a dev container that can see this repository and nothing else from your machine 
 credentials, SSH keys or tokens).
 
 ```bash
-git clone https://github.com/matt-spellcaster/spellcaster-site.git
-cd spellcaster-site
+git clone https://github.com/matt-spellcaster/spellcaster-site-WIP.git
+cd spellcaster-site-WIP
 git config core.hooksPath .githooks   # refuse keys, state, account IDs and PDFs
 scripts/dev.sh npm ci                 # the first run also builds the container image
 scripts/dev.sh npm run verify         # lint, type check, tests, build, browser tests
