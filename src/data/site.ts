@@ -17,6 +17,7 @@ export const site = {
   email: 'hello@spellcaster.foo',
   github: 'https://github.com/matt-spellcaster',
   linkedin: 'https://www.linkedin.com/in/matthew-spell-065b9483/' as string | null,
+  // Private for now, so nothing on the site links to it (the footer did).
   repo: 'https://github.com/matt-spellcaster/spellcaster-site',
 } as const;
 

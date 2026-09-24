@@ -2,7 +2,8 @@
 
 Matthew Spell's portfolio site, served at https://spellcaster.foo/. It's an Astro static
 site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The repository is
-**public** and is part of the portfolio, so it has to read well.
+**private for now and may be made public later** (Matthew's call, 2026-09-24), so treat it as
+public: it has to read well, and nothing private goes in (rule 7), whatever the setting says.
 
 ## Hard rules
 
@@ -36,13 +37,13 @@ site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The reposi
    Copy is written in Matthew's voice: plain, short sentences, no dashes, and no claim the
    linked repositories don't back up.
 7. **Nothing private in git.** No AWS account IDs, `backend.hcl`, `*.tfvars`, Terraform
-   state, phone number or home address. CI logs are public too: Terraform prints only its
+   state, phone number or home address. CI logs would be public too: Terraform prints only its
    plan summary, and role ARNs and the state bucket live in GitHub secrets. The
    pre-commit hook (`git config core.hooksPath .githooks`) refuses the obvious cases,
    including any PDF, found by name or content (`scripts/ci/check_pdfs.py`): a PDF's text is
    compressed, so no line scan can read it, and none belongs here. Matthew's resume is not
    on the site, by his choice, and a dist test fails on any PDF in `dist/`. CI's Security
-   job runs the same PDF check over every branch and tag, but by then the file is public:
+   job runs the same PDF check over every branch and tag, but by then the file is in the history:
    the hook is the only check that stops a leak.
 
 ## Commands (all through `scripts/dev.sh`)
