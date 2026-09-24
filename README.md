@@ -27,8 +27,16 @@ and open the address it prints.
 
 | Stage | What happens |
 |---|---|
-| Pull request | **Build** (dependency audit and signatures, lint, type check, unit and dist tests, build), **E2E** (Playwright + axe on Chrome, iPhone WebKit and Pixel, against the exact built artifact), **Security** (gitleaks and a no-PDFs check over the full history, zizmor, actionlint, branch-rule checks) and **Evidence** are all required |
+| Pull request | **Build** (dependency audit and signatures, lint, type check, unit and dist tests, build), **E2E** (Playwright + axe on Chrome, iPhone WebKit and Pixel, against the exact built artifact), **Security** (gitleaks and a no-PDFs check over the full history, zizmor, actionlint, branch-rule checks), **Terraform** (format, validate, TFLint and Checkov for every root) and **Evidence** are all required |
 | Merge to `main` | The same checks, then the evidence bundle is signed with a GitHub artifact attestation |
+
+## Infrastructure
+
+`infra/bootstrap` sets up the AWS account: Terraform state, GitHub's OIDC trust, one CI role
+per environment, the `qa.spellcaster.foo` zone, both certificates and the shared CloudFront
+policies. It's applied by hand; [docs/aws.md](docs/aws.md) has the steps and
+[docs/dns.md](docs/dns.md) the Cloudflare records. The CI roles are fenced by name and by an
+`Environment` tag, and `scripts/ci/iam_policy_tests.py` checks what each may and may not do.
 
 `CLAUDE.md` lists the rules this repository follows (supply chain, CSP, design, and what
 never gets committed).

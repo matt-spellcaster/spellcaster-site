@@ -1,0 +1,25 @@
+# Checkov findings accepted on purpose, each with its reason. This is a small static site in
+# one account, where a few dollars a month matters; revisit if that changes.
+# CI runs checkov -d infra with this file as --config-file (the Terraform job in
+# .github/workflows/compliance.yml).
+compact: true
+quiet: true
+framework:
+  - terraform
+skip-check:
+  # Cost and a second bucket per bucket. The state bucket is private, versioned (90 days of
+  # old versions) and TLS-only; the site buckets hold only what the public site serves.
+  - CKV_AWS_18 # S3 access logging
+  - CKV_AWS_144 # S3 cross-region replication
+  - CKV_AWS_145 # S3 encryption with KMS (SSE-S3 is used; a customer key is ~$1/month)
+  - CKV2_AWS_62 # S3 event notifications
+  # A customer KMS key costs ~$1/month, and CloudWatch and Budgets can't publish to a topic
+  # encrypted with the AWS-managed SNS key. The alerts carry no secrets.
+  - CKV_AWS_26 # SNS topic encryption
+  # The qa zone: DNSSEC would need a KMS key and a DS record at Cloudflare that follows its
+  # rotation (decided in M0: no DS for qa), and query logs would cost money for a zone that
+  # only ever answers for a password-protected test site.
+  - CKV2_AWS_38 # Route 53 DNSSEC
+  - CKV2_AWS_39 # Route 53 query logging
+# One more is skipped where it applies, not here: CKV_AWS_356 on the CI roles' access policy
+# (infra/bootstrap/ci_roles.tf says why), so every other policy is still checked.

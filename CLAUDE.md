@@ -62,6 +62,11 @@ Build job runs them too): `python3 -I -m unittest discover -s tests/ci`. Keep th
 keeps the writable repository root off Python's import path, so a file the container wrote
 there can't shadow a standard module.
 
+Terraform also runs on the host, because the container can't see `infra/`. After changing
+`infra/`, run `terraform fmt -recursive infra` and, in each root, `terraform validate`. Only
+Matthew applies `infra/bootstrap` (`docs/aws.md`); after any change to its CI roles, he runs
+`python3 -I scripts/ci/iam_policy_tests.py` against the account.
+
 ## Layout
 
 - `src/pages/`, `src/layouts/`, `src/components/`, `src/styles/`: the site.
@@ -73,7 +78,12 @@ there can't shadow a standard module.
   (the Python CI helpers).
 - `.devcontainer/Dockerfile`: Node and Playwright versions must match `.node-version` and
   `package.json` (a unit test checks).
-- `.github/workflows/compliance.yml`: Build → E2E, Security, Evidence (a SHA-256 evidence
+- `infra/bootstrap/`: the Terraform Matthew applies by hand (state, OIDC, the CI roles, the
+  qa zone, both certificates, CloudFront policies, alerts). `infra/envs/` (CI) comes
+  in M4b and M4c. Every root commits a `.terraform.lock.hcl` for linux_amd64 and darwin_arm64.
+  Accepted Checkov findings, each with a reason, are in `infra/.checkov.yaml`.
+- `docs/aws.md` (accounts, roles, bring-up) and `docs/dns.md` (the Cloudflare records).
+- `.github/workflows/compliance.yml`: Build → E2E, Security, Terraform, Evidence (a SHA-256 evidence
   bundle), then on main Sign evidence (the only job that can mint an OIDC token today) and
   Deploy production (gated on `vars.DEPLOY_ENABLED`).
 - `.github/rulesets/main.json`: the ruleset on `main`. When a new required check is added,

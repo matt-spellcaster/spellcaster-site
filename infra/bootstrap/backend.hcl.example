@@ -1,0 +1,4 @@
+# Copy to backend.hcl (git-ignored) after the first apply. The bucket name is the
+# state_bucket output; it contains the account ID, which is why this file stays local.
+bucket = "portfolio-tfstate-<account-id>-us-east-1-an"
+region = "us-east-1"
