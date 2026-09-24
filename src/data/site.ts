@@ -16,7 +16,7 @@ export const site = {
   github: 'https://github.com/matt-spellcaster',
   linkedin: 'https://www.linkedin.com/in/matthew-spell-065b9483/' as string | null,
   // Private for now, so nothing on the site links to it (the footer did).
-  repo: 'https://github.com/matt-spellcaster/spellcaster-site',
+  repo: 'https://github.com/matt-spellcaster/spellcaster-site-WIP',
 } as const;
 
 export const nav: SiteLink[] = [
