@@ -264,7 +264,7 @@ jobs:
           python3 scripts/ci/record.py branch-rules "$code" --title "Branch rules" \
             --control "SOC 2 CC8.1" --control "ISO 27001 A.8.32" \
             --tool "GitHub rulesets and environments API" \
-            --detail "${DEFAULT_BRANCH}: pull requests, required checks, linear history, no force pushes or deletion; production deploys from ${DEFAULT_BRANCH} only, with approval"
+            --detail "${DEFAULT_BRANCH}: pull requests, required checks, linear history, no force pushes or deletion; production deploys from ${DEFAULT_BRANCH} only, with approval where the plan offers it (results/branch-rules.json says if it was waived)"
           exit "$code"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()

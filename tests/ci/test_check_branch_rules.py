@@ -98,6 +98,22 @@ class Environment(unittest.TestCase):
                 self.assertEqual(unmet(evaluate_environment(environment(rules=rules))),
                                  ["'production' deployments need a reviewer's approval"])
 
+    def test_private_repository_waives_the_reviewer_and_says_so(self):
+        # GitHub offers a required reviewer on a private repository only with Enterprise.
+        rows = evaluate_environment(environment(rules=()), private=True)
+        self.assertEqual(unmet(rows), [])
+        self.assertTrue(rows[1]["waived"])
+        self.assertIn("waived", rows[1]["detail"])
+
+    def test_private_repository_with_a_reviewer_is_not_waived(self):
+        rows = evaluate_environment(environment(), private=True)
+        self.assertEqual(unmet(rows), [])
+        self.assertNotIn("waived", rows[1])
+
+    def test_private_repository_still_needs_main_only(self):
+        self.assertEqual(unmet(evaluate_environment(environment(branches=("main", "release")), private=True)),
+                         ["Only 'main' can deploy to 'production'"])
+
 
 class Main(unittest.TestCase):
     def setUp(self):
@@ -119,17 +135,25 @@ class Main(unittest.TestCase):
         self.assertEqual(cm.exception.code, 2)
 
     def test_exit_code_and_evidence_file(self):
-        for env, expected in ((environment(), 0), (environment(rules=()), 1)):
-            with self.subTest(expected=expected), tempfile.TemporaryDirectory() as tmp:
+        cases = (
+            (environment(), False, 0),
+            (environment(rules=()), False, 1),
+            (environment(rules=()), True, 0),  # private: the reviewer is waived and recorded
+        )
+        for env, private, expected in cases:
+            with self.subTest(private=private, expected=expected), tempfile.TemporaryDirectory() as tmp:
                 out = Path(tmp) / "branch-rules.json"
                 with mock.patch.object(check_branch_rules, "fetch_rules", return_value=RULES), \
                         mock.patch.object(check_branch_rules, "fetch_environment", return_value=env), \
-                        contextlib.redirect_stdout(io.StringIO()):
+                        mock.patch.object(check_branch_rules, "fetch_private", return_value=private), \
+                        contextlib.redirect_stdout(io.StringIO()) as out_text:
                     code = check_branch_rules.main(["--repo", "o/r", "--branch", "main", "--out", str(out)])
                 self.assertEqual(code, expected)
                 evidence = json.loads(out.read_text())
                 self.assertEqual(evidence["branch"], "main")
+                self.assertEqual(evidence["private"], private)
                 self.assertEqual(all(row["met"] for row in evidence["checks"]), expected == 0)
+                self.assertEqual("waived" in out_text.getvalue(), private and expected == 0)
 
 
 if __name__ == "__main__":
