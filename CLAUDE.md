@@ -36,10 +36,12 @@ site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The reposi
 7. **Nothing private in git.** No AWS account IDs, `backend.hcl`, `*.tfvars`, Terraform
    state, phone number or home address. CI logs are public too: Terraform prints only its
    plan summary, and role ARNs and the state bucket live in GitHub secrets. The
-   pre-commit hook (`git config core.hooksPath .githooks`) refuses the obvious cases, and
-   runs `scripts/ci/check_pdfs.py` on staged PDFs (their text is compressed, so no line scan
-   sees it); CI's Security job runs it over the whole history. Matthew's resume is not on
-   the site, by his choice: a dist test fails if `dist/` has any PDF.
+   pre-commit hook (`git config core.hooksPath .githooks`) refuses the obvious cases,
+   including any PDF, found by name or content (`scripts/ci/check_pdfs.py`): a PDF's text is
+   compressed, so no line scan can read it, and none belongs here. Matthew's resume is not
+   on the site, by his choice, and a dist test fails on any PDF in `dist/`. CI's Security
+   job runs the same PDF check over every branch and tag, but by then the file is public:
+   the hook is the only check that stops a leak.
 
 ## Commands (all through `scripts/dev.sh`)
 

@@ -1,6 +1,6 @@
 // Checks the built site in dist/. Run `npm run build` first.
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
@@ -160,8 +160,11 @@ describe('site files', () => {
     expect(urls.filter((u) => u?.includes('404'))).toEqual([]);
   });
 
-  it('publishes no PDF (the resume stays off the site)', () => {
-    expect(files.filter((f) => f.toLowerCase().endsWith('.pdf'))).toEqual([]);
+  it('publishes no PDF, by name or by content (the resume stays off the site)', () => {
+    const isPdf = (f: string) =>
+      f.toLowerCase().endsWith('.pdf') ||
+      (statSync(join(DIST, f)).isFile() && readFileSync(join(DIST, f)).subarray(0, 1028).includes('%PDF-'));
+    expect(files.filter(isPdf)).toEqual([]);
   });
 });
 
