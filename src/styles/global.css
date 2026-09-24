@@ -16,7 +16,8 @@
   --color-canvas: #111010;
   --color-surface: #181616;
   --color-surface-2: #221f1f;
-  /* The planet's disc in the horizon. Nothing is drawn on it. */
+  /* The planet's disc in the horizon. It fades out under the featured project's header, so
+     the contrast test counts it as a surface. */
   --color-planet: #0b0c10;
   --color-line: #2b2828;
   --color-ink: #ecebe6;

@@ -18,8 +18,8 @@ export default defineConfig({
   build: { format: 'directory' },
   integrations: [mdx(), react(), sitemap()],
   // Self-hosted from pinned npm packages (no font CDN, so no CSP exception). Latin only.
-  // Newsreader is the reading face; its file carries the weight and optical-size axes, so
-  // headings and body text get their own cuts. Inter is the UI face.
+  // Newsreader is the reading face, in its variable-weight cut (58 KB; the cut with the
+  // optical-size axis as well is 132 KB, on the critical path of every page). Inter is the UI face.
   fonts: [
     {
       provider: fontProviders.local(),
@@ -29,7 +29,7 @@ export default defineConfig({
       options: {
         variants: [
           {
-            src: ['@fontsource-variable/newsreader/files/newsreader-latin-standard-normal.woff2'],
+            src: ['@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2'],
             weight: '200 800',
             style: 'normal',
           },

@@ -1,7 +1,8 @@
 ---
 // The thin-line horizon under the pitch: the limb of a warm-black planet, lit from behind by
-// two soft blue bands, fading out before the featured project.
-// - Gradients only, no filters. A large blur crashed WebKit's renderer in the phone tests.
+// two soft blue bands, fading out through the featured project's header.
+// - Gradients only, no filters (a unit test checks). A large blur crashed WebKit's renderer in
+//   the phone tests.
 // - Drawn at a fixed 2560 px wide and centred, so the curve and the glow are the same size on
 //   every screen; narrower screens see the middle of it.
 // - Positioned absolutely with top: auto and no positioned ancestor: it sits where it falls
@@ -30,7 +31,9 @@ const fadeEnd = 770;
         <stop offset="0" stop-color="#fff"></stop>
         <stop offset="1" stop-color="#000"></stop>
       </linearGradient>
-      <mask id="horizon-mask">
+      <!-- Bounded to the drawing: without maskUnits and a box, WebKit sizes the mask's buffer
+           from the planet's full circle (3440 px across), not the 2560x800 that shows. -->
+      <mask id="horizon-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="2560" height="800">
         <rect width="2560" height="800" fill="url(#horizon-fade)"></rect>
       </mask>
       <!-- The wide haze and the tight limb light: each peaks at the limb and fades outward. -->

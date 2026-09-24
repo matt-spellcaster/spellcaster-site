@@ -27,10 +27,19 @@ function internalLinks(html: string): string[] {
     .filter((h) => h.startsWith('/') && !h.startsWith('//'));
 }
 
-function pngSize(path: string): [number, number] | undefined {
+function imageSize(path: string): [number, number] | undefined {
   if (!existsSync(path)) return undefined;
-  const png = readFileSync(path);
-  return [png.readUInt32BE(16), png.readUInt32BE(20)];
+  const buf = readFileSync(path);
+  if (buf.subarray(1, 4).toString() === 'PNG') return [buf.readUInt32BE(16), buf.readUInt32BE(20)];
+  // JPEG: walk the segments to the first start-of-frame marker (SOF0 to SOF15, less the tables).
+  for (let pos = 2; pos + 9 < buf.length && buf[pos] === 0xff; ) {
+    const marker = buf[pos + 1] ?? 0;
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+      return [buf.readUInt16BE(pos + 7), buf.readUInt16BE(pos + 5)];
+    }
+    pos += 2 + buf.readUInt16BE(pos + 2);
+  }
+  return undefined;
 }
 
 const sha256 = (text: string) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
@@ -137,9 +146,9 @@ describe('built pages', () => {
       expect(html).toMatch(/<meta name="description" content="[^"]{50,}"/);
       const canonical = /<link rel="canonical" href="([^"]+)"/.exec(html)?.[1];
       expect(canonical).toBe(`https://spellcaster.foo/${page.replace(/index\.html$/, '')}`);
-      const og = /<meta property="og:image" content="https:\/\/spellcaster\.foo(\/og\/[^"]+\.png)"/.exec(html)?.[1];
+      const og = /<meta property="og:image" content="https:\/\/spellcaster\.foo(\/og\/[^"]+\.jpg)"/.exec(html)?.[1];
       expect(og, 'og:image').toBeDefined();
-      expect(pngSize(join(DIST, og ?? ''))).toEqual([1200, 630]);
+      expect(imageSize(join(DIST, og ?? ''))).toEqual([1200, 630]);
     });
   });
 });

@@ -26,7 +26,7 @@ const person = {
 <Base
   title={site.name}
   description={site.description}
-  ogImage="/og/home.png"
+  ogImage="/og/home.jpg"
   ogImageAlt={`${site.name}: full stack IT portfolio`}
   jsonLd={person}
   nameIsH1
@@ -37,16 +37,22 @@ const person = {
     <h2 id="more-title" class="eyebrow">
       More projects
     </h2>
-    <!-- A ledger: name, one line, and the link. The link covers the whole row. -->
+    <!-- A ledger: name, one line, and the link. The link covers the whole row, and the row
+         shows it on hover (the name turns accent). The one-liner sits above the link so it can
+         be selected and copied. -->
     <ul class="border-line mt-2 border-b">
       {others.map((project) => (
         <li class="border-line group relative grid gap-x-6 gap-y-1 border-t py-4 sm:grid-cols-[13rem_minmax(0,1fr)_5rem] sm:items-baseline">
-          <h3 class="text-ink text-xl">{project.data.title}</h3>
-          <p class="text-ink/70 text-[1.0625rem] leading-[1.5]">{project.data.summary}</p>
+          <h3 class="text-ink group-hover:text-accent text-xl transition-colors">
+            {project.data.title}
+          </h3>
+          <p class="text-ink/70 relative z-10 text-[1.0625rem] leading-[1.5]">
+            {project.data.summary}
+          </p>
           <TextLink
             href={project.data.repo}
             tone="accent"
-            class="after:absolute after:inset-0 sm:justify-self-end"
+            class="group-hover:decoration-accent after:absolute after:inset-0 sm:justify-self-end"
           >
             GitHub<span class="sr-only">: {project.data.title}</span>
           </TextLink>

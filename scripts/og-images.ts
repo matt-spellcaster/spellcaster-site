@@ -1,16 +1,15 @@
 // Makes the committed social and icon images. Run it again after changing the design:
 //   scripts/dev.sh node scripts/og-images.ts
-// Writes public/og/{home,okta-access-review-aws}.png (1200x630), public/apple-touch-icon.png
-// (180x180) and public/favicon.ico (32x32, a PNG inside an ICO container).
+// Writes public/og/{home,okta-access-review-aws}.jpg (1200x630; as PNG the sky's gradients
+// dithered to 230 to 300 KB), public/apple-touch-icon.png (180x180) and public/favicon.ico
+// (32x32, a PNG inside an ICO container).
 import { chromium } from '@playwright/test';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const font = (path: string) =>
   `url(data:font/woff2;base64,${readFileSync(`node_modules/${path}`).toString('base64')}) format('woff2')`;
 const inter = font('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2');
-const newsreader = font(
-  '@fontsource-variable/newsreader/files/newsreader-latin-standard-normal.woff2',
-);
+const newsreader = font('@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2');
 const shot = readFileSync('src/assets/okta/slack-review-finished.png');
 const favicon = readFileSync('public/favicon.svg', 'utf8');
 
@@ -38,7 +37,9 @@ const horizon = (() => {
       <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="0" y1="90" x2="0" y2="300">
         <stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/>
       </linearGradient>
-      <mask id="mask"><rect width="1200" height="300" fill="url(#fade)"/></mask>
+      <mask id="mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1200" height="300">
+        <rect width="1200" height="300" fill="url(#fade)"/>
+      </mask>
       <radialGradient id="haze" gradientUnits="userSpaceOnUse" cx="${cx}" cy="${cy}" r="${r + 220}">
         <stop offset="${r / (r + 220)}" stop-color="#4f7fd9" stop-opacity="0.18"/>
         <stop offset="1" stop-color="#4f7fd9" stop-opacity="0"/>
@@ -110,7 +111,7 @@ mkdirSync('public/og', { recursive: true });
 for (const [name, html] of Object.entries(pages)) {
   await page.setContent(`<!doctype html><html><body>${html}</body></html>`, { waitUntil: 'load' });
   await page.evaluate(() => document.fonts.ready);
-  writeFileSync(`public/og/${name}.png`, await page.screenshot({ type: 'png' }));
+  writeFileSync(`public/og/${name}.jpg`, await page.screenshot({ type: 'jpeg', quality: 85 }));
 }
 
 // Apple touch icons are full-bleed squares; iOS rounds the corners itself.
@@ -128,4 +129,4 @@ for (const [size, out] of [
 }
 
 await browser.close();
-console.log('Wrote public/og/*.png, public/apple-touch-icon.png and public/favicon.ico');
+console.log('Wrote public/og/*.jpg, public/apple-touch-icon.png and public/favicon.ico');

@@ -66,8 +66,8 @@ there can't shadow a standard module.
 
 - `src/pages/`, `src/layouts/`, `src/components/`, `src/styles/`: the site.
 - `src/data/site.ts`: name, pitch and links, in one place.
-- `src/content/projects/`: one entry per project card; the featured one (`.mdx`) is also the
-  case study at `/projects/<id>/`. The schema is in `src/content.config.ts`.
+- `src/content/projects/`: one entry per project on the home page; the featured one (`.mdx`)
+  is also the case study at `/projects/<id>/`. The schema is in `src/content.config.ts`.
 - `tests/unit/` (source and repository rules), `tests/dist/` (the built `dist/`),
   `tests/e2e/` (Playwright + axe on Desktop Chrome, iPhone WebKit and Pixel), `tests/ci/`
   (the Python CI helpers).

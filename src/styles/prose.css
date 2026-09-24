@@ -11,7 +11,7 @@
 .case-study > p,
 .case-study > ul {
   margin-top: 1rem;
-  font-size: 1.125rem;
+  font-size: 1.1875rem;
   line-height: 1.65;
   color: rgb(236 235 230 / 0.85);
 }
@@ -26,7 +26,7 @@
   color: var(--color-accent);
 }
 .case-study strong {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-ink);
 }
 /* Links inside text are underlined, so they don't rely on colour alone. */

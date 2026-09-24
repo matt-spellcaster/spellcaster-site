@@ -8,6 +8,10 @@ import TextLink from './TextLink.astro';
 
 const [project, ...more] = await getCollection('projects', (p) => p.data.featured);
 if (!project || more.length) throw new Error('expected exactly one featured project');
+// The paragraph and the facts below are written for this one project, not read from its entry.
+if (project.id !== 'okta-access-review-aws') {
+  throw new Error(`the featured write-up is for okta-access-review-aws, not ${project.id}`);
+}
 const { title, repo, cover, coverAlt } = project.data;
 if (!cover || !coverAlt) throw new Error(`${project.id} is featured but has no cover`);
 
@@ -40,14 +44,19 @@ const facts = [
     ))}
   </dl>
   <figure class="mt-8">
+    <!-- Cropped to 4:3 from the top at build time, so no variant carries pixels the frame hides.
+         Lazy: on phones the figure is below the fold, and the fonts should win the first round trips. -->
     <div class="frame border-line bg-surface rounded-xl border p-2">
       <Image
         src={cover}
+        width={1260}
+        height={945}
+        fit="cover"
+        position="top"
         widths={[420, 750, 1260]}
         sizes="(min-width: 832px) 750px, calc(100vw - 2.5rem)"
-        loading="eager"
         alt={coverAlt}
-        class="aspect-[4/3] h-auto w-full rounded-lg object-cover object-top"
+        class="h-auto w-full rounded-lg"
       />
     </div>
     <figcaption class="text-muted mt-3 font-sans text-[0.8125rem]">
