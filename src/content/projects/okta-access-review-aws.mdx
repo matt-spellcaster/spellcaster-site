@@ -1,6 +1,6 @@
 ---
 title: Okta access review in AWS
-summary: 'DRAFT: A quarterly Okta access review that runs in AWS. The CISO decides every item in Slack, each fix becomes a Jira ticket, and the evidence is kept for audits.'
+summary: 'A quarterly Okta access review that runs in AWS. The CISO decides every item in Slack, each fix becomes a Jira ticket, and the evidence is kept for audits.'
 repo: https://github.com/matt-spellcaster/okta-access-review-aws
 order: 1
 featured: true
@@ -8,9 +8,9 @@ cover: ../../assets/okta/slack-review-finished.png
 coverAlt: 'Slack: the finished review, signed off, with 18 findings by check from critical to info, the decisions, and the tickets opened'
 sampleReport: https://github.com/matt-spellcaster/okta-access-review-aws/blob/master/docs/sample-report.pdf
 shows:
-  - "DRAFT: IAM judgement. 18 checks, including the leaver cases an account status doesn't show, like an API token that still works after the account is deactivated."
-  - 'DRAFT: Evidence an auditor can check: a SHA-256 manifest, a sign-off bound to that hash, and create-only storage under S3 Object Lock.'
-  - 'DRAFT: All of it runs in AWS as Terraform, deployed from GitHub Actions through OIDC, so there are no stored AWS keys.'
+  - "IAM judgement. 18 checks, including the leaver cases an account status doesn't show, like an API token that still works after the account is deactivated."
+  - 'Evidence an auditor can check: a SHA-256 manifest, a sign-off bound to that hash, and create-only storage under S3 Object Lock.'
+  - 'All of it runs in AWS as Terraform, deployed from GitHub Actions through OIDC, so there are no stored AWS keys.'
 ---
 
 import Figure from '../../components/Figure.astro';
@@ -22,7 +22,7 @@ import subtasks from '../../assets/okta/jira-subtasks.png';
 
 ## The problem
 
-DRAFT: A quarterly access review tends to be a spreadsheet. Someone marks each row keep or
+A quarterly access review tends to be a spreadsheet. Someone marks each row keep or
 revoke, the revokes may or may not happen, and nobody goes back to check.
 
 Offboarding has a gap of its own. Deactivating someone's Okta account doesn't touch the API
@@ -31,7 +31,7 @@ and a normal review never looks at them. This one does.
 
 ## What a review looks like
 
-DRAFT: These are from a demo run with **Acme**, a fictional company, sent through the same code
+These are from a demo run with **Acme**, a fictional company, sent through the same code
 the Lambda functions run. The reviewer's name is blacked out.
 
 <Figure
@@ -67,7 +67,7 @@ gaps, and the report leads with them.
 
 ## How it runs in AWS
 
-DRAFT: An EventBridge schedule starts a Step Functions workflow each quarter. Eight Lambda
+An EventBridge schedule starts a Step Functions workflow each quarter. Eight Lambda
 functions share one arm64 container image: they read Okta, post to Slack, handle the button
 clicks, open the tickets, send reminders, and re-read Okta every day to check the fixes.
 
@@ -83,7 +83,7 @@ step done by hand is storing four secret values, which Terraform deliberately ne
 
 ## Why the evidence can be trusted
 
-- DRAFT: **It can't change Okta.** Okta grants only read scopes, the tool refuses any other
+- **It can't change Okta.** Okta grants only read scopes, the tool refuses any other
   scope, and its client can only send GET requests. A test enforces the last one.
 - **Every file is hashed.** `manifest.json` lists the SHA-256 of every file in a run, and the
   CISO's sign-off is bound to that hash.
@@ -98,7 +98,7 @@ step done by hand is storing four secret values, which Terraform deliberately ne
 
 ## SOC 2 and ISO 27001
 
-DRAFT: Each of the 18 checks maps to controls in both frameworks. The
+Each of the 18 checks maps to controls in both frameworks. The
 [full list](https://github.com/matt-spellcaster/okta-access-review-aws#checks) is in the README.
 
 | What it checks                                                               | SOC 2               | ISO 27001:2022                |
@@ -112,7 +112,7 @@ DRAFT: Each of the 18 checks maps to controls in both frameworks. The
 
 ## Trade-offs
 
-- DRAFT: Only Super Administrator can read admin role assignments in Okta. The app has it, paired
+- Only Super Administrator can read admin role assignments in Okta. The app has it, paired
   with read-only scopes, and flags itself for review on every run.
 - The HR roster is a CSV export passed in at run time. There's no live HR integration yet.
 - GitHub is read from a snapshot file. The AWS pipeline doesn't pass one yet, so its runs are
@@ -123,7 +123,7 @@ DRAFT: Each of the 18 checks maps to controls in both frameworks. The
 
 ## Run it yourself
 
-DRAFT: The demo needs no Okta, AWS, Slack or Jira. With [uv](https://docs.astral.sh/uv/)
+The demo needs no Okta, AWS, Slack or Jira. With [uv](https://docs.astral.sh/uv/)
 installed, clone the repository and run:
 
 ```bash

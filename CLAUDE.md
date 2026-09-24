@@ -30,13 +30,18 @@ site deployed to S3 + CloudFront with Terraform, through GitHub OIDC. The reposi
 5. **Links.** Every internal `href` ends in `/` (for example `/projects/okta-access-review-aws/`).
 6. **Draft copy.** Text Matthew hasn't approved yet starts with `DRAFT:` (on the case study,
    at the start of each section), and facts only he can supply are `[placeholders]`.
-   `npm run launch-check` fails while any are left, or while the resume or the LinkedIn link
-   is missing. Copy is written in Matthew's voice: plain, short sentences, no dashes, and no
-   claim the linked repositories don't back up.
+   `npm run launch-check` fails while any are left, or while the LinkedIn link is missing.
+   Copy is written in Matthew's voice: plain, short sentences, no dashes, and no claim the
+   linked repositories don't back up.
 7. **Nothing private in git.** No AWS account IDs, `backend.hcl`, `*.tfvars`, Terraform
    state, phone number or home address. CI logs are public too: Terraform prints only its
    plan summary, and role ARNs and the state bucket live in GitHub secrets. The
-   pre-commit hook (`git config core.hooksPath .githooks`) refuses the obvious cases.
+   pre-commit hook (`git config core.hooksPath .githooks`) refuses the obvious cases,
+   including any PDF, found by name or content (`scripts/ci/check_pdfs.py`): a PDF's text is
+   compressed, so no line scan can read it, and none belongs here. Matthew's resume is not
+   on the site, by his choice, and a dist test fails on any PDF in `dist/`. CI's Security
+   job runs the same PDF check over every branch and tag, but by then the file is public:
+   the hook is the only check that stops a leak.
 
 ## Commands (all through `scripts/dev.sh`)
 
@@ -57,7 +62,7 @@ there can't shadow a standard module.
 ## Layout
 
 - `src/pages/`, `src/layouts/`, `src/components/`, `src/styles/`: the site.
-- `src/data/site.ts`: name, pitch, links and the resume path, in one place.
+- `src/data/site.ts`: name, pitch and links, in one place.
 - `src/content/projects/`: one entry per project card; the featured one (`.mdx`) is also the
   case study at `/projects/<id>/`. The schema is in `src/content.config.ts`.
 - `tests/unit/` (source and repository rules), `tests/dist/` (the built `dist/`),

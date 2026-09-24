@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Block commits that include key material, Terraform state or real settings.
+# Block commits that include key material, Terraform state, real settings, AWS account IDs
+# or a PDF.
 # This repository is public: backend settings, tfvars and plans name the AWS account.
 # Enable with: git config core.hooksPath .githooks
 fail=0
@@ -23,7 +24,18 @@ id='(^|[^0-9])[0-9]{4}-?[0-9]{4}-?[0-9]{4}([^0-9]|$)'
 if grep -qE "$id" <<< "$added"; then
   grep -nE "$id" <<< "$added" >&2
   echo "pre-commit: a staged line contains a 12-digit number (an AWS account ID?)." >&2
-  echo "            If it's safe, commit with --no-verify." >&2
+  echo "            If it's safe, commit with --no-verify (which skips every check here)." >&2
   fail=1
 fi
+# A PDF's text is compressed, so the scan above can't read it, and no PDF belongs here:
+# refuse any, found by name or by content.
+out=$(python3 -I "$(dirname "$0")/../scripts/ci/check_pdfs.py" --staged 2>&1)
+code=$?
+case $code in
+  0) ;;
+  1) echo "$out" >&2
+     echo "pre-commit: this repository holds no PDFs." >&2; fail=1 ;;
+  *) echo "$out" >&2
+     echo "pre-commit: the PDF check failed (exit $code; it needs python3)." >&2; fail=1 ;;
+esac
 exit $fail

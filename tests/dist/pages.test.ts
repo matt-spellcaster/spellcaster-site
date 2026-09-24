@@ -159,6 +159,13 @@ describe('site files', () => {
     expect(urls).toContain('https://spellcaster.foo/projects/okta-access-review-aws/');
     expect(urls.filter((u) => u?.includes('404'))).toEqual([]);
   });
+
+  it('publishes no PDF, by name or by content (the resume stays off the site)', () => {
+    const isPdf = (f: string) =>
+      f.toLowerCase().endsWith('.pdf') ||
+      (statSync(join(DIST, f)).isFile() && readFileSync(join(DIST, f)).subarray(0, 1028).includes('%PDF-'));
+    expect(files.filter(isPdf)).toEqual([]);
+  });
 });
 
 // The home page and the case study load no framework: no island, and at most 2 KB of
@@ -212,13 +219,6 @@ describe.runIf(process.env['LAUNCH_CHECK'] === '1')('launch check', () => {
 
   it('the home page links to LinkedIn', () => {
     expect(readFileSync(join(DIST, 'index.html'), 'utf8')).toMatch(/href="https:\/\/(www\.)?linkedin\.com\//);
-  });
-
-  it('the resume is there, under 1 MB, and linked', () => {
-    const resume = join(DIST, 'matthew-spell-resume.pdf');
-    expect(existsSync(resume)).toBe(true);
-    expect(statSync(resume).size).toBeLessThanOrEqual(1024 * 1024);
-    expect(readFileSync(join(DIST, 'index.html'), 'utf8')).toContain('href="/matthew-spell-resume.pdf"');
   });
 });
 

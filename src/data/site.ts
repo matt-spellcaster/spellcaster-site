@@ -1,8 +1,5 @@
 // The single source for who the site is about and where it links. Copy that starts with
 // "DRAFT:" hasn't been approved yet; the launch check fails while any is left.
-import { existsSync } from 'node:fs';
-
-const RESUME = '/matthew-spell-resume.pdf';
 
 export interface SiteLink {
   label: string;
@@ -17,8 +14,6 @@ export const site = {
   email: 'hello@spellcaster.foo',
   github: 'https://github.com/matt-spellcaster',
   linkedin: 'https://www.linkedin.com/in/matthew-spell-065b9483/' as string | null,
-  // Linked only once the PDF is in public/; the launch check requires it.
-  resume: existsSync(`public${RESUME}`) ? RESUME : null,
   repo: 'https://github.com/matt-spellcaster/spellcaster-site',
 } as const;
 
