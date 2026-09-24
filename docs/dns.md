@@ -63,7 +63,8 @@ Expect four `awsdns` servers, `"v=DMARC1; p=reject; …"`, `0 .` and `0 issue "a
 For each validation record, `dig +short CNAME <name>.spellcaster.foo` should print its
 target.
 
-## Records for M4b (later)
+## Records for launch (M5, later)
 
-The apex and `www` point at the production distribution. They're added after production is
-live on its `cloudfront.net` name; M4b's steps have the values.
+The apex and `www` point at the production distribution. They're added at launch, once
+production is live on its `cloudfront.net` name. [aws.md](aws.md) ("Production deploys")
+shows how to find that name.
