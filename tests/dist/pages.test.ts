@@ -1,6 +1,6 @@
 // Checks the built site in dist/. Run `npm run build` first.
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
@@ -159,6 +159,10 @@ describe('site files', () => {
     expect(urls).toContain('https://spellcaster.foo/projects/okta-access-review-aws/');
     expect(urls.filter((u) => u?.includes('404'))).toEqual([]);
   });
+
+  it('publishes no PDF (the resume stays off the site)', () => {
+    expect(files.filter((f) => f.toLowerCase().endsWith('.pdf'))).toEqual([]);
+  });
 });
 
 // The home page and the case study load no framework: no island, and at most 2 KB of
@@ -212,13 +216,6 @@ describe.runIf(process.env['LAUNCH_CHECK'] === '1')('launch check', () => {
 
   it('the home page links to LinkedIn', () => {
     expect(readFileSync(join(DIST, 'index.html'), 'utf8')).toMatch(/href="https:\/\/(www\.)?linkedin\.com\//);
-  });
-
-  it('the resume is there, under 1 MB, and linked', () => {
-    const resume = join(DIST, 'matthew-spell-resume.pdf');
-    expect(existsSync(resume)).toBe(true);
-    expect(statSync(resume).size).toBeLessThanOrEqual(1024 * 1024);
-    expect(readFileSync(join(DIST, 'index.html'), 'utf8')).toContain('href="/matthew-spell-resume.pdf"');
   });
 });
 

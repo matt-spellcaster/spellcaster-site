@@ -26,4 +26,11 @@ if grep -qE "$id" <<< "$added"; then
   echo "            If it's safe, commit with --no-verify." >&2
   fail=1
 fi
+# A PDF's text is compressed, so the scan above can't read it. This reads each staged PDF
+# (found by content, not name) for a phone number, a street address or a local path.
+if ! out=$(python3 -I "$(dirname "$0")/../scripts/ci/check_pdfs.py" --staged); then
+  echo "$out" >&2
+  echo "pre-commit: a staged PDF has personal details in it, or can't be read." >&2
+  fail=1
+fi
 exit $fail

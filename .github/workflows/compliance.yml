@@ -209,6 +209,20 @@ jobs:
             --tool "gitleaks ${GITLEAKS_VERSION}" \
             --detail "${leaks:-unknown} leaks in ${commits} commits (values redacted)"
           exit "$code"
+      - name: Check PDFs for personal details
+        if: success() || failure()
+        run: |
+          mkdir -p results
+          set +e
+          # gitleaks can't read a PDF's compressed text, so this reads every PDF in the history.
+          python3 -I scripts/ci/check_pdfs.py --history | tee results/pdf-check.txt
+          code=${PIPESTATUS[0]}
+          summary=$(tail -n 1 results/pdf-check.txt)
+          python3 scripts/ci/record.py pdf-check "$code" --title "Personal details in PDFs" \
+            --control "SOC 2 C1.1" --control "ISO 27001 A.5.34" \
+            --tool "scripts/ci/check_pdfs.py (standard library)" \
+            --detail "${summary:-the check did not complete}, in text, metadata, links and alt text (findings masked)"
+          exit "$code"
       - name: Lint the workflows
         if: success() || failure()
         env:
@@ -281,7 +295,7 @@ jobs:
           set +e
           python3 scripts/ci/build_evidence.py results evidence \
             --expect dependencies --expect build --expect e2e \
-            --expect secret-scan --expect workflow-lint --expect branch-rules
+            --expect secret-scan --expect pdf-check --expect workflow-lint --expect branch-rules
           echo "code=$?" >> "$GITHUB_ENV"
           tar -czf "evidence-${GITHUB_SHA}.tar.gz" evidence
           # Sign evidence signs this digest, not whatever artifact carries the bundle's name.
