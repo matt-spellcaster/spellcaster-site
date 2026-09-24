@@ -1,0 +1,49 @@
+/* Frosted glass. Only the header and the mobile menu use it (CLAUDE.md), so content never
+   sits on a translucent background.
+   - The filter is written out literally, -webkit- first: Safari before 18 needs the prefix
+     and ignores custom properties inside it.
+   - The tint is at least 0.80, so text stays legible over a white image (the contrast test
+     checks that worst case).
+   - Every fallback is opaque: no backdrop-filter support, reduced transparency, more
+     contrast, forced colors. */
+.glass {
+  background-color: rgb(11 13 16 / 0.8);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+  backdrop-filter: saturate(160%) blur(16px);
+  border-color: rgb(255 255 255 / 0.08);
+}
+
+/* The menu sheet. WebKit draws no blur for elements in the top layer (where popovers
+   live), so a heavier tint keeps the page's text from showing through the menu links. */
+.glass-strong {
+  background-color: rgb(11 13 16 / 0.92);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background-color: var(--color-surface);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .glass {
+    background-color: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass {
+    border-color: var(--color-muted);
+  }
+}
+
+@media (forced-colors: active) {
+  .glass {
+    background-color: Canvas;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-color: CanvasText;
+  }
+}

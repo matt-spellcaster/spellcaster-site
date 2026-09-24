@@ -8,9 +8,24 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # typescript-eslint and @astrojs/check don't support TypeScript 7 yet.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # Node's types follow the Node major in .node-version (24, the LTS line).
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
+      # Minor and patch updates together. A major comes as its own pull request, so one that
+      # breaks the build doesn't hold back the rest.
       npm:
         patterns: ['*']
+        exclude-patterns: ['@playwright/test']
+        update-types: ['minor', 'patch']
+      # On its own too: its pull request also needs the dev container's PLAYWRIGHT_VERSION
+      # bumped by hand (a unit test checks they match).
+      playwright:
+        patterns: ['@playwright/test']
 
   - package-ecosystem: github-actions
     directory: /
@@ -28,5 +43,10 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # Stay on the Node 24 LTS line; moving to Node 26 is a deliberate change (with
+      # .node-version and @types/node), not a weekly bump.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
 
   # Terraform (provider lock files in infra/) is added with the first Terraform root in M4.

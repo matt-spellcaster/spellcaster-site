@@ -1,15 +1,48 @@
 ---
+import { getCollection } from 'astro:content';
+import About from '../components/About.astro';
+import Contact from '../components/Contact.astro';
+import Featured from '../components/Featured.astro';
+import Hero from '../components/Hero.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { site } from '../data/site';
 import Base from '../layouts/Base.astro';
+
+const others = (await getCollection('projects', (p) => !p.data.featured)).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+
+// schema.org Person. No email: that stays a mailto link on the page.
+const person = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.name,
+  url: new URL('/', Astro.site).href,
+  ...(site.jobTitle ? { jobTitle: site.jobTitle } : {}),
+  sameAs: [site.github, ...(site.linkedin ? [site.linkedin] : [])],
+};
 ---
 
 <Base
-  title="Matthew Spell"
-  description="DRAFT: Matthew Spell, IAM and IT systems engineer. Portfolio coming soon."
+  title={site.name}
+  description={site.pitch.replace(/^DRAFT: /, '')}
+  ogImage="/og/home.png"
+  ogImageAlt={`${site.name}: IAM and IT systems engineering portfolio`}
+  jsonLd={person}
 >
-  <main class="mx-auto max-w-2xl px-6 py-24">
-    <h1 class="text-4xl font-semibold tracking-tight">Matthew Spell</h1>
-    <p class="text-muted mt-4 text-lg">
-      DRAFT: IAM and IT systems engineer. This site is under construction.
-    </p>
-  </main>
+  <Hero />
+  <Featured />
+  <section aria-labelledby="more-title" class="pb-16 sm:pb-24">
+    <h2 id="more-title" class="text-ink text-xl font-semibold tracking-tight">
+      More projects
+    </h2>
+    <p class="text-muted mt-2 text-sm">All public.</p>
+    <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {others.map((project) => (
+        <ProjectCard project={project} />
+      ))}
+    </div>
+  </section>
+  <About />
+  <Contact />
 </Base>

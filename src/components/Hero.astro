@@ -1,0 +1,28 @@
+---
+import { site } from '../data/site';
+import LinkButton from './LinkButton.astro';
+
+const links = [
+  ...(site.resume ? [{ label: 'Resume (PDF)', href: site.resume, primary: true }] : []),
+  { label: 'GitHub', href: site.github, primary: !site.resume },
+  ...(site.linkedin ? [{ label: 'LinkedIn', href: site.linkedin, primary: false }] : []),
+  { label: 'Email', href: `mailto:${site.email}`, primary: false },
+];
+---
+
+<section class="relative pt-32 pb-16 sm:pt-44 sm:pb-24">
+  <h1 class="text-ink text-4xl font-semibold tracking-tight sm:text-6xl">{site.name}</h1>
+  {site.jobTitle && <p class="text-muted mt-3 text-lg sm:text-xl">{site.jobTitle}</p>}
+  <p class="text-ink/90 mt-6 max-w-[62ch] text-lg leading-relaxed sm:text-xl sm:leading-relaxed">
+    {site.pitch}
+  </p>
+  <ul class="mt-9 flex flex-wrap gap-3">
+    {links.map((link) => (
+      <li>
+        <LinkButton href={link.href} variant={link.primary ? 'primary' : 'secondary'}>
+          {link.label}
+        </LinkButton>
+      </li>
+    ))}
+  </ul>
+</section>

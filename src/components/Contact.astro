@@ -1,0 +1,19 @@
+---
+import { site } from '../data/site';
+---
+
+<section id="contact" aria-labelledby="contact-title" class="border-line border-t py-16 sm:py-24">
+  <div class="grid items-baseline gap-4 lg:grid-cols-[1fr_2fr] lg:gap-14">
+    <h2 id="contact-title" class="text-ink text-2xl font-semibold tracking-tight sm:text-3xl">
+      Contact
+    </h2>
+    <p>
+      <a
+        href={`mailto:${site.email}`}
+        class="text-accent text-lg underline underline-offset-4 hover:no-underline sm:text-xl"
+      >
+        {site.email}
+      </a>
+    </p>
+  </div>
+</section>

@@ -1,13 +1,25 @@
 ---
+import { Font } from 'astro:assets';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { site } from '../data/site';
 import '../styles/global.css';
 
 interface Props {
   title: string;
   description: string;
+  /** A 1200x630 PNG in public/og/ (scripts/og-images.ts makes them). */
+  ogImage: string;
+  ogImageAlt: string;
+  type?: 'website' | 'article';
+  /** Structured data for search engines (schema.org). */
+  jsonLd?: Record<string, unknown>;
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site);
+const { title, description, ogImage, ogImageAlt, type = 'website', jsonLd, noindex } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const image = new URL(ogImage, Astro.site).href;
 ---
 
 <!doctype html>
@@ -16,11 +28,53 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0d10" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={ogImageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <Font cssVariable="--font-inter" preload />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>}
   </head>
-  <body class="bg-canvas text-ink min-h-dvh antialiased">
-    <slot />
+  <body class="bg-canvas text-ink min-h-dvh font-sans antialiased">
+    <a
+      href="#main"
+      class="bg-accent text-canvas fixed top-2 left-2 z-[60] -translate-y-20 rounded-lg px-4 py-3 text-sm font-medium focus:translate-y-0"
+    >
+      Skip to content
+    </a>
+    <Header />
+    <!-- A soft glow behind the header, so the glass has something to frost. -->
+    <div
+      aria-hidden="true"
+      class="glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem]"
+    ></div>
+    <main id="main" class="mx-auto max-w-5xl px-5 sm:px-8">
+      <slot />
+    </main>
+    <Footer />
   </body>
 </html>
+
+<style>
+  .glow {
+    background:
+      radial-gradient(40rem 22rem at 18% -4rem, rgb(138 180 248 / 0.16), transparent 70%),
+      radial-gradient(30rem 18rem at 85% 2rem, rgb(92 201 138 / 0.07), transparent 70%);
+  }
+</style>

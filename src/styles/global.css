@@ -1,12 +1,31 @@
 @import 'tailwindcss';
+@import './glass.css';
+@import './prose.css';
 
-/* Dark only. The full palette and the header glass arrive with the M2 mockup. */
+/* Dark only. tests/unit/contrast.test.ts checks every text colour against every surface,
+   the header's text against the glass with a white image behind it, and line-strong at 3:1. */
 @theme {
+  /* Inter, self-hosted through the Fonts API (astro.config.ts). */
+  --font-sans: var(--font-inter);
+
   --color-canvas: #0b0d10;
+  --color-surface: #12151a;
+  --color-surface-2: #1a1e24;
+  --color-line: #262b33;
+  /* Outlines that carry meaning, like the boxes in the project card diagrams. */
+  --color-line-strong: #636c7a;
   --color-ink: #e8eaed;
   --color-muted: #a3aab5;
+  --color-accent: #8ab4f8;
+
+  /* The demo's decision colours (M6). */
+  --color-keep: #5cc98a;
+  --color-revoke: #f07178;
+  --color-decide: #e6b450;
 }
 
 :root {
   color-scheme: dark;
+  /* In-page links land below the fixed header. */
+  scroll-padding-top: 5rem;
 }

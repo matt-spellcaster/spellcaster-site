@@ -1,0 +1,68 @@
+---
+// The featured project's title, links and screenshot come from its entry in
+// src/content/projects/; the paragraph and the facts are written for the home page.
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import LinkButton from './LinkButton.astro';
+
+const [project, ...more] = await getCollection('projects', (p) => p.data.featured);
+if (!project || more.length) throw new Error('expected exactly one featured project');
+const { title, repo, cover, coverAlt } = project.data;
+if (!cover || !coverAlt) throw new Error(`${project.id} is featured but has no cover`);
+
+const facts = [
+  { value: '18', label: 'checks, each mapped to SOC 2 and ISO 27001' },
+  { value: '0', label: 'writes to Okta; it only reads' },
+  { value: '100%', label: 'of items decided by a person, in Slack' },
+];
+---
+
+<section id="work" aria-labelledby="featured-title" class="border-line border-t py-16 sm:py-24">
+  <div class="grid items-start gap-10 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
+    <div class="lg:sticky lg:top-24">
+      <p class="text-accent text-sm font-medium">Featured project</p>
+      <h2
+        id="featured-title"
+        class="text-ink mt-3 text-2xl font-semibold tracking-tight sm:text-3xl"
+      >
+        {title}
+      </h2>
+      <p class="text-ink/90 mt-5 text-base leading-relaxed sm:text-lg sm:leading-relaxed">
+        A quarterly Okta access review that runs itself in AWS. It checks 18 things, like a leaver
+        whose API token still works, sends every item to the CISO in Slack, and opens a Jira ticket
+        for each fix. Then it reads Okta again to make sure the fix really happened.
+      </p>
+      <dl class="mt-8 grid grid-cols-3 gap-4">
+        {facts.map((fact) => (
+          <div class="border-line flex flex-col border-l pl-3">
+            <dt class="text-muted text-xs leading-snug sm:text-sm">{fact.label}</dt>
+            <dd class="text-ink order-first text-xl font-semibold tabular-nums sm:text-2xl">
+              {fact.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div class="mt-9 flex flex-wrap gap-3">
+        <LinkButton href={`/projects/${project.id}/`} variant="primary">
+          Read the case study
+        </LinkButton>
+        <LinkButton href={repo}>Code on GitHub</LinkButton>
+      </div>
+    </div>
+    <figure>
+      <div class="border-line bg-surface rounded-xl border p-2">
+        <Image
+          src={cover}
+          widths={[420, 630, 840, 1260]}
+          sizes="(min-width: 1024px) 520px, calc(100vw - 2.5rem)"
+          loading="eager"
+          alt={coverAlt}
+          class="h-auto w-full rounded-lg"
+        />
+      </div>
+      <figcaption class="text-muted mt-3 text-sm">
+        The finished review in Slack, from a demo run with the fictional Acme company.
+      </figcaption>
+    </figure>
+  </div>
+</section>

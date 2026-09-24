@@ -1,0 +1,54 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import LinkButton from '../../components/LinkButton.astro';
+import { site } from '../../data/site';
+import Base from '../../layouts/Base.astro';
+
+// Only the featured project has a case study; the others link straight to GitHub.
+export async function getStaticPaths() {
+  const featured = await getCollection('projects', (p) => p.data.featured);
+  return featured.map((project) => ({ params: { id: project.id }, props: { project } }));
+}
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+}
+
+const { project } = Astro.props;
+const { title, summary, repo, shows = [], sampleReport } = project.data;
+const { Content } = await render(project);
+---
+
+<Base
+  title={`${title} | ${site.name}`}
+  description={summary.replace(/^DRAFT: /, '')}
+  ogImage={`/og/${project.id}.png`}
+  ogImageAlt={`Case study: ${title}`}
+  type="article"
+>
+  <article class="pt-24 pb-16 sm:pt-32">
+    <header id="summary" class="max-w-3xl">
+      <p class="text-accent text-sm font-medium">Case study</p>
+      <h1 class="text-ink mt-2 text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
+      <p class="text-ink/90 mt-4 text-base leading-relaxed sm:text-lg">{summary}</p>
+      <h2 class="sr-only">What this shows</h2>
+      <ul class="mt-5 space-y-2.5">
+        {shows.map((line) => (
+          <li class="text-muted flex gap-3 text-sm leading-relaxed sm:text-base">
+            <span aria-hidden="true" class="bg-accent mt-2 size-1.5 shrink-0 rounded-full" />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <LinkButton href={repo} variant="primary">
+          Code on GitHub
+        </LinkButton>
+        {sampleReport && <LinkButton href={sampleReport}>Sample report (PDF)</LinkButton>}
+      </div>
+    </header>
+    <div class="case-study border-line mt-12 max-w-3xl border-t pt-4">
+      <Content />
+    </div>
+  </article>
+</Base>

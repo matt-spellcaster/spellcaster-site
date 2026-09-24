@@ -115,6 +115,8 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     if not args.repo:
         p.error("--repo is required outside GitHub Actions")
+    if not args.branch:
+        p.error("--branch is empty")
 
     token = os.environ.get("GITHUB_TOKEN", "")
     try:

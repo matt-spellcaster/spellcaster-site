@@ -1,0 +1,29 @@
+---
+// Fixed and frosted. No ancestor may set a transform, a filter or containment:
+// any of those would break the fixed position and the glass (an E2E test checks).
+import { nav, site } from '../data/site';
+import MobileMenu from './MobileMenu.astro';
+---
+
+<header class="glass fixed inset-x-0 top-0 z-50 border-b">
+  <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-5 sm:px-8">
+    <a href="/" class="text-ink text-[0.95rem] font-semibold tracking-tight">
+      {site.name}
+    </a>
+    <nav aria-label="Main" class="hidden sm:block">
+      <ul class="flex items-center gap-1">
+        {nav.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class="text-muted hover:text-ink inline-flex min-h-11 items-center rounded-lg px-3 text-sm"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <MobileMenu links={nav} />
+  </div>
+</header>
