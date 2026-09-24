@@ -184,6 +184,26 @@ AWS_PROFILE=portfolio-admin terraform apply tfplan
 The state bucket and the qa zone have `prevent_destroy`, so a plan that would delete either
 one fails. After any change to `ci_roles.tf`, run the IAM checks again.
 
+## Known limits, for M4b and M4c
+
+What the M4a review left open, and what the next stages must do about each:
+
+- **A CloudFront resource without an `Environment` tag can be claimed.** Either role may tag
+  one as its own, then change or delete it. Everything bootstrap makes carries the tag. Keep
+  it that way: every distribution and function in `infra/envs` gets its environment's tag
+  (the provider's `default_tags` do this).
+- **Replacing a certificate takes two applies.** Bootstrap makes the new certificate before
+  deleting the old one, but AWS won't delete a certificate CloudFront still uses, so that
+  apply stops with an error. Apply `infra/envs` to move the distribution to the new
+  certificate, then apply bootstrap again. For this to work, `infra/envs` must look the
+  certificate up with `most_recent = true`.
+- **Checkov's dependencies wait 7 days, but aren't locked.** CI installs only releases at
+  least a week old, but the exact set can change from day to day. A new `CHECKOV_VERSION`
+  also has to be a week old, or the job fails.
+- **Production can read any CloudFront function** (`cloudfront:Get*`). If M4c checks the QA
+  password in a function, the function holds only a SHA-256 hash of it. So make the password
+  long and random (for example `openssl rand -base64 24`), so the hash can't be guessed back.
+
 ## Cost
 
 About $0.50 a month for the hosted zone, plus cents for state storage. The certificate,
