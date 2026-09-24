@@ -33,7 +33,7 @@ REQUIRED_RULES = {
     "required_linear_history": "History stays linear (squash merges only)",
 }
 # Job names from .github/workflows/compliance.yml that must be required checks.
-REQUIRED_CHECKS = ["Build", "E2E", "Security", "Evidence"]
+REQUIRED_CHECKS = ["Build", "E2E", "Security", "Terraform", "Evidence"]
 # Deploy production runs in this environment; only this branch may deploy to it.
 ENVIRONMENT = "production"
 DEPLOY_BRANCH = "main"

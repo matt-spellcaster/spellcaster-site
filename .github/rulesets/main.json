@@ -33,6 +33,7 @@
           { "context": "Build", "integration_id": 15368 },
           { "context": "E2E", "integration_id": 15368 },
           { "context": "Security", "integration_id": 15368 },
+          { "context": "Terraform", "integration_id": 15368 },
           { "context": "Evidence", "integration_id": 15368 }
         ]
       }

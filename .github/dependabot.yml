@@ -49,4 +49,12 @@ updates:
       - dependency-name: node
         update-types: ['version-update:semver-major']
 
-  # Terraform (provider lock files in infra/) is added with the first Terraform root in M4.
+  - package-ecosystem: terraform # provider versions and lock files
+    directories: [/infra/bootstrap]
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      terraform:
+        patterns: ['*']
