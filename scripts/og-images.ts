@@ -66,7 +66,7 @@ const pages: Record<string, string> = {
     </style>
     <div class="sky"></div>${horizon}
     <h1>Matthew Spell</h1>
-    <p>IAM and IT systems engineering</p>
+    <p>Full stack IT. Here are some things I built.</p>
     <div class="url">spellcaster.foo</div>${mark}`,
 
   'okta-access-review-aws': `<style>${base}
