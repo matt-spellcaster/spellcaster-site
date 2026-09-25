@@ -61,7 +61,9 @@ they don't match, though only someone with write access can start QA up anyway.
 
 **Put a branch on QA.** Push the branch and open a pull request, then wait for the
 Compliance checks' **Build** and **E2E** jobs to pass. QA up publishes the site those jobs
-built and tested for that commit, so it never builds anything itself. Then:
+built and tested for that commit, so it never builds anything itself. A branch with
+unapproved copy (`DRAFT:` or a `[placeholder]`) fails Build, so it can't go to QA until the
+copy is approved: read drafts on the local dev server instead. Then:
 
 **github.com** → the repository → **Actions** → **QA up** → **Run workflow** → pick the
 branch → **Run workflow**.

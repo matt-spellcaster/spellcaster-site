@@ -18,7 +18,6 @@
     "test:dist": "vitest run --project dist",
     "test:e2e": "playwright test",
     "verify": "npm run lint && npm run check && npm test && npm run build && npm run test:dist && npm run test:e2e",
-    "launch-check": "LAUNCH_CHECK=1 vitest run --project dist",
     "lighthouse": "node scripts/lighthouse.ts"
   },
   "dependencies": {

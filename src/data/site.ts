@@ -1,5 +1,5 @@
 // The single source for who the site is about and where it links. Copy that starts with
-// "DRAFT:" hasn't been approved yet; the launch check fails while any is left.
+// "DRAFT:" hasn't been approved yet; the dist tests fail while any is left.
 
 export interface SiteLink {
   label: string;
