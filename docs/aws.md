@@ -17,7 +17,8 @@ this repository: they live in your AWS profiles, in git-ignored files and in Git
 | `infra/envs/prod` (M4b) | CI, `portfolio-prod` role | The production bucket, CloudFront function and distribution, traffic alarms |
 | `infra/envs/qa` (M4c) | CI, `portfolio-qa` role | The same for QA, plus its DNS record; built and torn down on demand |
 
-Bootstrap holds everything that must outlive a deploy, or that CI must never change.
+Bootstrap holds everything that must outlive a deploy, or that CI must never change. Both
+`infra/envs` roots build their site with the same module, `infra/modules/site`.
 
 ## The CI roles
 
@@ -170,6 +171,79 @@ stays in SSM (`/portfolio/qa/basic-auth-password`), not in GitHub.
 `awsdns` servers, `dig +short TXT _dmarc.qa.spellcaster.foo` shows `p=reject`, and both
 certificates are `ISSUED`.
 
+## Production deploys (M4b)
+
+Every merge to `main` that passes its checks runs **Deploy production**, once you approve
+it on the run's page (you're the `production` environment's reviewer). As `portfolio-prod`,
+it:
+
+1. Stops if `main` has moved on while it waited, so an older commit never replaces a newer one.
+2. Checks the site it downloaded is the one the Build job hashed and E2E tested.
+3. Plans `infra/envs/prod`, and stops if the plan would remove the bucket or the
+   distribution, or remove or turn off the bucket's versioning, public access block or
+   policy, or let the policy allow anything more than CloudFront reading the site. The run's
+   summary lists each change by name, with no values.
+4. Applies the plan, publishes the site (`scripts/ci/publish_site.py`) and clears
+   CloudFront's cache. If publishing fails partway, some new pages may be live and others
+   not: rerun the failed job, and it uploads everything again.
+5. Runs the smoke test (`scripts/ci/smoke.py`) against the distribution's `cloudfront.net`
+   name. It asks for `spellcaster.foo` the way a browser will, so it works before DNS
+   points there.
+6. Saves what happened as `deploy-evidence-<sha>` (90 days).
+
+Terraform's own output never reaches the public log: only its summary line, the list of
+changes and any error.
+
+**Turning it on.** Once, from `infra/bootstrap`:
+
+```bash
+AWS_PROFILE=portfolio-admin terraform output -json shared | jq -r .origin_access_control_id | gh variable set ORIGIN_ACCESS_CONTROL_ID --repo matt-spellcaster/spellcaster-site-WIP
+gh variable set DEPLOY_ENABLED --body true --repo matt-spellcaster/spellcaster-site-WIP
+```
+
+The origin access control's ID isn't secret, and Terraform has no way to look one up by
+name, so it's a variable. The first deploy then runs on the next merge to `main`. Creating
+the distribution takes 5 to 15 minutes.
+
+**Checking it** (read-only):
+
+```bash
+aws cloudfront list-distributions --profile portfolio-read --query "DistributionList.Items[].[Id,DomainName,Aliases.Items[0],Status]" --output table
+curl -sI https://<distribution>.cloudfront.net/ | grep -iE '^(HTTP|location)'
+curl -sI --connect-to spellcaster.foo:443:<distribution>.cloudfront.net:443 https://spellcaster.foo/ | head -1
+aws cloudwatch describe-alarms --profile portfolio-read --alarm-name-prefix portfolio-production- --query "MetricAlarms[].[AlarmName,StateValue]" --output table
+```
+
+The first `curl` should print a 301 to `https://spellcaster.foo/`, the second `HTTP/2 200`,
+and there should be two alarms. Nobody sees the site at `spellcaster.foo` until the
+Cloudflare records at launch (M5, [dns.md](dns.md)).
+
+**Undoing a deploy.** Revert the pull request. The merge deploys the reverted site. The
+production bucket keeps every old version of every file, and the role can't delete them.
+
+**If a deploy stops halfway.** Most often the first one, while CloudFront creates the
+distribution. The role can't clean up after it, so you do it as `portfolio-admin`, from
+`infra/envs/prod`:
+
+```bash
+export AWS_PROFILE=portfolio-admin TF_VAR_account_id=<account id> TF_VAR_origin_access_control_id=<oac id>
+terraform init -backend-config="bucket=<state bucket>"
+```
+
+Then, depending on what the next run's log says:
+
+- **"Error acquiring the state lock"**: the stopped run still holds the lock. Run
+  `terraform force-unlock <lock id>` with the ID from the log.
+- **The plan guard refuses `module.site.aws_cloudfront_distribution.site (replace, tainted)`**:
+  the distribution was made, but Terraform stopped waiting for it. Once the first `aws
+  cloudfront list-distributions` command above shows it `Deployed`, run
+  `terraform untaint module.site.aws_cloudfront_distribution.site`.
+- **`CNAMEAlreadyExists`**: a distribution Terraform doesn't know about holds the names. Find
+  its ID with the same command, then run
+  `terraform import module.site.aws_cloudfront_distribution.site <distribution id>`.
+
+Then rerun the failed job from the run's page. Delete the `.terraform` folder when you're done.
+
 ## Changing bootstrap later
 
 Always plan first, from `infra/bootstrap` with `backend.hcl` in place:
@@ -184,9 +258,10 @@ AWS_PROFILE=portfolio-admin terraform apply tfplan
 The state bucket and the qa zone have `prevent_destroy`, so a plan that would delete either
 one fails. After any change to `ci_roles.tf`, run the IAM checks again.
 
-## Known limits, for M4b and M4c
+## Known limits
 
-What the M4a review left open, and what the next stages must do about each:
+What the M4a review left open. `infra/envs/prod` (M4b) handles the first two; `infra/envs/qa`
+(M4c) must do the same.
 
 - **A CloudFront resource without an `Environment` tag can be claimed.** Either role may tag
   one as its own, then change or delete it. Everything bootstrap makes carries the tag. Keep
@@ -208,3 +283,7 @@ What the M4a review left open, and what the next stages must do about each:
 
 About $0.50 a month for the hosted zone, plus cents for state storage. The certificate,
 origin access control, header policies, email alerts and the budget are free at this size.
+
+Production adds cents for the bucket. CloudFront's always-free allowance covers 1 TB, 10
+million requests and 2 million function runs a month, and the first 10 alarms are free. The
+traffic alarms go off long before the site could use that allowance up.

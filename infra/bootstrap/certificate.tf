@@ -5,7 +5,8 @@
 # stay for as long as the site exists: ACM renews through them.
 #
 # There's no waiter here on purpose. Validation needs those manual records, so an apply would
-# otherwise hang; infra/envs/prod waits for ISSUED instead, before CloudFront uses it.
+# otherwise hang. infra/envs/prod looks up only an ISSUED certificate instead, so its plan
+# fails rather than hand CloudFront a pending one.
 
 resource "aws_acm_certificate" "production" {
   domain_name               = var.domain

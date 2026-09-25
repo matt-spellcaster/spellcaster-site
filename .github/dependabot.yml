@@ -50,7 +50,7 @@ updates:
         update-types: ['version-update:semver-major']
 
   - package-ecosystem: terraform # provider versions and lock files
-    directories: [/infra/bootstrap]
+    directories: [/infra/bootstrap, /infra/envs/prod]
     schedule:
       interval: weekly
     cooldown:

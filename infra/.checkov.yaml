@@ -21,5 +21,25 @@ skip-check:
   # only ever answers for a password-protected test site.
   - CKV2_AWS_38 # Route 53 DNSSEC
   - CKV2_AWS_39 # Route 53 query logging
-# One more is skipped where it applies, not here: CKV_AWS_356 on the CI roles' access policy
-# (infra/bootstrap/ci_roles.tf says why), so every other policy is still checked.
+  # The site buckets. Production's role may not set a lifecycle rule at all, because one could
+  # expire every old version of the site (the NoProductionDeletes guardrail); QA's bucket is
+  # destroyed every night. The state bucket has its rule. So production keeps an old version of
+  # the site's files (about 3 MB) for every deploy, for good: cents a year, and every one is a
+  # rollback.
+  - CKV2_AWS_61 # S3 lifecycle configuration
+  # The distributions. WAF costs at least $5 a month per site, and a static site has no forms,
+  # logins or server code for it to protect; CloudFront's free Shield Standard still applies,
+  # and the traffic alarms catch a flood. The Log4j rule needs WAF, and nothing here runs Java.
+  - CKV_AWS_68 # CloudFront WAF
+  - CKV2_AWS_47 # CloudFront WAF with the Log4j rule
+  # Access logs would record every visitor's IP address, which this site has no use for, and
+  # need a bucket and a retention rule of their own. The traffic alarms watch the volume.
+  - CKV_AWS_86 # CloudFront access logging
+  # One bucket in one region is enough for a portfolio: S3's own availability, and a second
+  # bucket would double what every publish has to keep in step.
+  - CKV_AWS_310 # CloudFront origin failover
+  # A public portfolio is for anyone, anywhere.
+  - CKV_AWS_374 # CloudFront geo restriction
+# Two more are skipped where they apply, not here, so everything else is still checked:
+# CKV_AWS_356 on the CI roles' access policy (infra/bootstrap/ci_roles.tf says why), and
+# CKV2_AWS_32 on the site distribution (infra/modules/site/cloudfront.tf).

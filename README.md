@@ -29,6 +29,7 @@ and open the address it prints.
 |---|---|
 | Pull request | **Build** (dependency audit and signatures, lint, type check, unit and dist tests, build), **E2E** (Playwright + axe on Chrome, iPhone WebKit and Pixel, against the exact built artifact), **Security** (gitleaks and a no-PDFs check over the full history, zizmor, actionlint, branch-rule checks), **Terraform** (format, validate, TFLint and Checkov for every root) and **Evidence** are all required |
 | Merge to `main` | The same checks, then the evidence bundle is signed with a GitHub artifact attestation |
+| Deploy production | After an approval: Terraform plans and applies `infra/envs/prod`, the exact tested build is published to S3, CloudFront's cache is cleared, and a smoke test checks the live site (the home page's hash, headers, redirects, TLS) |
 
 ## Infrastructure
 
@@ -37,6 +38,8 @@ per environment, the `qa.spellcaster.foo` zone, both certificates and the shared
 policies. It's applied by hand; [docs/aws.md](docs/aws.md) has the steps and
 [docs/dns.md](docs/dns.md) the Cloudflare records. The CI roles are fenced by name and by an
 `Environment` tag, and `scripts/ci/iam_policy_tests.py` checks what each may and may not do.
+`infra/envs/prod` is the production site (a private bucket, a CloudFront distribution and
+function, traffic alarms), applied only by CI.
 
 `CLAUDE.md` lists the rules this repository follows (supply chain, CSP, design, and what
 never gets committed).
