@@ -25,6 +25,24 @@ VERSIONING = "module.site.aws_s3_bucket_versioning.site[0]"
 BLOCK = "module.site.aws_s3_bucket_public_access_block.site"
 POLICY = "module.site.aws_s3_bucket_policy.site"
 ALL_BLOCKED = dict.fromkeys(plan_guard.BLOCK_FLAGS, True)
+# Account IDs here are built, not written, so the pre-commit hook's account-ID check stays quiet.
+SOURCE = {"StringEquals": {"AWS:SourceArn": f"arn:aws:cloudfront::{'1' * 12}:distribution/E2EXAMPLE"}}
+
+
+def policy(*extra, allow=None, deny=True):
+    """The module's bucket policy as aws_iam_policy_document renders it, changed as asked."""
+    cloudfront = {"Service": "cloudfront.amazonaws.com"}
+    statements = allow if allow is not None else [
+        {"Sid": "CloudFrontLists", "Effect": "Allow", "Action": "s3:ListBucket", "Principal": cloudfront,
+         "Resource": "arn:aws:s3:::b", "Condition": SOURCE},
+        {"Sid": "CloudFrontReads", "Effect": "Allow", "Action": "s3:GetObject", "Principal": cloudfront,
+         "Resource": "arn:aws:s3:::b/*", "Condition": SOURCE},
+    ]
+    if deny:
+        statements = statements + [{"Sid": "DenyInsecureTransport", "Effect": "Deny", "Action": "s3:*", "Principal": "*",
+                                    "Resource": ["arn:aws:s3:::b", "arn:aws:s3:::b/*"],
+                                    "Condition": {"Bool": {"aws:SecureTransport": "false"}}}]
+    return {"policy": json.dumps({"Version": "2012-10-17", "Statement": statements + list(extra)})}
 
 
 class PlanGuard(unittest.TestCase):
@@ -84,7 +102,7 @@ class PlanGuard(unittest.TestCase):
             change(VERSIONING, "aws_s3_bucket_versioning", "create",
                    after={"versioning_configuration": [{"status": "Enabled", "mfa_delete": None}]}),
             change(BLOCK, "aws_s3_bucket_public_access_block", "update", after=ALL_BLOCKED),
-            change(POLICY, "aws_s3_bucket_policy", "update", after={"policy": "{}"}),
+            change(POLICY, "aws_s3_bucket_policy", "update", after=policy()),
         )
         self.assertEqual((code, err), (0, ""))
 
@@ -103,6 +121,36 @@ class PlanGuard(unittest.TestCase):
                 self.assertEqual(code, 1)
                 self.assertIn(f"::error::The plan would remove or weaken {problem}.", err)
                 self.assertIn(f"**Refused:** {problem}.", summary)
+
+    def test_the_first_deploys_policy_is_unknown_and_passes(self):
+        code, _, err, _ = self.run_guard(change(POLICY, "aws_s3_bucket_policy", "create", after={"bucket": "b"}))
+        self.assertEqual((code, err), (0, ""))
+
+    def test_a_policy_that_opens_the_bucket_is_refused(self):
+        cloudfront = {"Service": "cloudfront.amazonaws.com"}
+        outsider = {"AWS": f"arn:aws:iam::{'2' * 12}:root"}
+        cases = {
+            "another account may write": (policy({"Effect": "Allow", "Action": "s3:PutObject", "Principal": outsider,
+                                                  "Resource": "arn:aws:s3:::b/*"}),
+                                          "the policy allows someone other than CloudFront"),
+            "CloudFront may write": (policy(allow=[{"Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"],
+                                                    "Principal": cloudfront, "Condition": SOURCE}]),
+                                     "the policy allows s3:PutObject"),
+            "any distribution may read": (policy(allow=[{"Effect": "Allow", "Action": "s3:GetObject",
+                                                         "Principal": cloudfront}]),
+                                          "the policy lets CloudFront read without naming the distribution"),
+            "NotAction": (policy(allow=[{"Effect": "Allow", "NotAction": "s3:DeleteObject", "Principal": cloudfront,
+                                         "Condition": SOURCE}]),
+                          "the policy has an Allow with NotAction, NotPrincipal or NotResource"),
+            "no HTTPS deny": (policy(deny=False), "the policy drops the HTTPS-only deny"),
+            "unknown on update": ({"bucket": "b"}, "a policy that can't be checked until apply"),
+        }
+        for name, (after, problem) in cases.items():
+            with self.subTest(name):
+                code, _, err, summary = self.run_guard(change(POLICY, "aws_s3_bucket_policy", "update", after=after))
+                self.assertEqual(code, 1)
+                self.assertIn(f"{POLICY} ({problem})", err)
+                self.assertNotIn("2" * 12, err + summary)
 
     def test_empty_plan(self):
         code, out, _, summary = self.run_guard()

@@ -524,8 +524,9 @@ jobs:
           mkdir -p results
           code=1
           [ "$SMOKE_PASSED" = true ] && code=0
-          plan=$(cat results/plan.txt 2>/dev/null)
-          published=$(cat results/publish.txt 2>/dev/null)
+          # || true: under bash -e a missing file (a failed plan or apply) would end the step here.
+          plan=$(cat results/plan.txt 2>/dev/null || true)
+          published=$(cat results/publish.txt 2>/dev/null || true)
           python3 scripts/ci/record.py deploy "$code" --title "Deploy production" \
             --control "SOC 2 CC8.1" --control "ISO 27001 A.8.32" \
             --tool "terraform ${TERRAFORM_VERSION}, AWS CLI, scripts/ci/publish_site.py and smoke.py" \

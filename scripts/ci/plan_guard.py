@@ -6,7 +6,8 @@
 Fails if the plan would delete, replace or forget a bucket or a distribution: the bucket holds
 every published version of the site, and the distribution holds its domain names. It also fails
 if the plan would remove or turn off what keeps the bucket private and its old versions kept:
-its versioning, public access block and policy. The list names each change by address and
+its versioning, public access block and policy, or let the policy allow anything more than
+CloudFront reading the site. The list names each change by address and
 action only, never by value: CI logs and job summaries are public, and values can name the
 account. Standard library only.
 """
@@ -22,6 +23,8 @@ from pathlib import Path
 PROTECTED = ("aws_s3_bucket", "aws_cloudfront_distribution", "aws_s3_bucket_versioning",
              "aws_s3_bucket_public_access_block", "aws_s3_bucket_policy")
 BLOCK_FLAGS = ("block_public_acls", "block_public_policy", "ignore_public_acls", "restrict_public_buckets")
+# All the bucket policy may allow, and only to CloudFront (infra/modules/site/bucket.tf).
+POLICY_ACTIONS = {"s3:GetObject", "s3:ListBucket"}
 
 # Terraform's action lists, as one word each.
 ACTIONS = {
@@ -48,8 +51,40 @@ def changes(plan: dict) -> list[dict]:
     return rows
 
 
-def weakens(rtype: str, after: dict) -> str | None:
-    """What a create or update turns off, if it's versioning or the public access block."""
+def as_list(value) -> list:
+    return value if isinstance(value, list) else [value]
+
+
+def policy_problem(policy: str) -> str | None:
+    """Why a bucket policy is refused: it may only let CloudFront, for one distribution, read
+    the site, and must keep the HTTPS-only deny. Never names a principal: it could be an account."""
+    statements = as_list(json.loads(policy).get("Statement", []))
+    for st in statements:
+        if st.get("Effect") != "Allow":
+            continue
+        if "NotAction" in st or "NotPrincipal" in st or "NotResource" in st:
+            return "the policy has an Allow with NotAction, NotPrincipal or NotResource"
+        if st.get("Principal") != {"Service": "cloudfront.amazonaws.com"}:
+            return "the policy allows someone other than CloudFront"
+        if extra := set(as_list(st.get("Action", []))) - POLICY_ACTIONS:
+            return "the policy allows " + ", ".join(sorted(extra))
+        arn = st.get("Condition", {}).get("StringEquals", {}).get("AWS:SourceArn")
+        if not (isinstance(arn, str) and arn.startswith("arn:aws:cloudfront::")):
+            return "the policy lets CloudFront read without naming the distribution"
+    if not any(st.get("Effect") == "Deny"
+               and st.get("Condition", {}).get("Bool", {}).get("aws:SecureTransport") in ("false", ["false"])
+               for st in statements):
+        return "the policy drops the HTTPS-only deny"
+    return None
+
+
+def weakens(rtype: str, action: str, after: dict) -> str | None:
+    """What a create or update turns off or opens up, for the bucket's protections."""
+    if rtype == "aws_s3_bucket_policy":
+        if "policy" not in after:
+            # Unknown until apply. On the first deploy it names the distribution being created.
+            return None if action == "create" else "a policy that can't be checked until apply"
+        return policy_problem(after["policy"])
     if rtype == "aws_s3_bucket_versioning":
         status = ((after.get("versioning_configuration") or [{}])[0]).get("status")
         return None if status == "Enabled" else f"versioning {status}"
@@ -68,7 +103,7 @@ def refused(rows: list[dict]) -> list[str]:
             # A distribution whose first create timed out is tainted: docs/aws.md says what to do.
             tainted = ", tainted" if row["reason"] == "replace_because_tainted" else ""
             problems.append(f"{row['address']} ({row['action']}{tainted})")
-        elif weakness := weakens(row["type"], row["after"]):
+        elif weakness := weakens(row["type"], row["action"], row["after"]):
             problems.append(f"{row['address']} ({weakness})")
     return problems
 

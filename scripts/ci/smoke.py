@@ -23,7 +23,6 @@ import socket
 import ssl
 import subprocess
 import sys
-import time
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Callable
@@ -192,15 +191,16 @@ def check_other_hosts(site: Site) -> list[str]:
             for p in redirect(site.get("/", host=h), f"https://{site.host}/")]
 
 
-def largest_asset(site: Site, suffixes: tuple[str, ...]) -> str:
+def assets_by_size(site: Site, suffixes: tuple[str, ...]) -> list[str]:
+    """The build's _astro files with these suffixes, largest first."""
     assets = [f for f in site.files if f.startswith("_astro/") and f.endswith(suffixes)]
     if not assets:
         raise ValueError(f"the build has no _astro file ending in {'/'.join(suffixes)}")
-    return max(assets, key=lambda f: ((site.dist / f).stat().st_size, f))
+    return sorted(assets, key=lambda f: ((site.dist / f).stat().st_size, f), reverse=True)
 
 
 def check_asset(site: Site) -> list[str]:
-    name = largest_asset(site, (".css", ".js"))
+    name = assets_by_size(site, (".css", ".js"))[0]
     r = site.get(f"/{name}")
     problems = status(r, 200)
     if sha256(r.body) != site.files[name]:
@@ -212,16 +212,14 @@ def check_asset(site: Site) -> list[str]:
     return problems
 
 
-def check_brotli(site: Site, tries: int = 3, wait: float = 5) -> list[str]:
-    # CloudFront compresses on a cache miss, and may skip it when an edge is busy: try again.
-    name = largest_asset(site, (".css", ".js"))
-    for attempt in range(tries):
-        encoding = site.get(f"/{name}", headers={"Accept-Encoding": "br"}).headers.get("content-encoding")
-        if encoding == "br":
+def check_brotli(site: Site) -> list[str]:
+    # CloudFront may skip compressing when an edge is busy, and then caches the uncompressed copy,
+    # so asking again for the same file proves nothing. Each try is a different file instead.
+    names = assets_by_size(site, (".css", ".js"))
+    for name in names:
+        if site.get(f"/{name}", headers={"Accept-Encoding": "br"}).headers.get("content-encoding") == "br":
             return []
-        if attempt < tries - 1:
-            time.sleep(wait)
-    return [f"{name} came back {encoding or 'uncompressed'}, not br, {tries} times"]
+    return [f"none of {', '.join(names)} came back as br"]
 
 
 def check_tls(site: Site) -> list[str]:

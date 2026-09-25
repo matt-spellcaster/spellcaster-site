@@ -181,9 +181,11 @@ it:
 2. Checks the site it downloaded is the one the Build job hashed and E2E tested.
 3. Plans `infra/envs/prod`, and stops if the plan would remove the bucket or the
    distribution, or remove or turn off the bucket's versioning, public access block or
-   policy. The run's summary lists each change by name, with no values.
+   policy, or let the policy allow anything more than CloudFront reading the site. The run's
+   summary lists each change by name, with no values.
 4. Applies the plan, publishes the site (`scripts/ci/publish_site.py`) and clears
-   CloudFront's cache.
+   CloudFront's cache. If publishing fails partway, some new pages may be live and others
+   not: rerun the failed job, and it uploads everything again.
 5. Runs the smoke test (`scripts/ci/smoke.py`) against the distribution's `cloudfront.net`
    name. It asks for `spellcaster.foo` the way a browser will, so it works before DNS
    points there.

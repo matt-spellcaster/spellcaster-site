@@ -6,7 +6,6 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "ci"))
 
@@ -63,9 +62,6 @@ class FakeEdge:
 
 class Smoke(unittest.TestCase):
     def setUp(self):
-        sleep = mock.patch("smoke.time.sleep")  # check_brotli waits between tries
-        sleep.start()
-        self.addCleanup(sleep.stop)
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         dist = Path(tmp.name)
@@ -122,8 +118,12 @@ class Smoke(unittest.TestCase):
         failures = self.failures()
         self.assertEqual(failures["_astro files are cached for a year"],
                          [f"cache-control: {REVALIDATE!r}, expected {IMMUTABLE!r}"])
-        self.assertEqual(smoke.check_brotli(self.site, tries=2, wait=0),
-                         ["_astro/big.css came back uncompressed, not br, 2 times"])
+        self.assertEqual(failures["brotli compression"], ["none of _astro/big.css, _astro/small.js came back as br"])
+
+    def test_one_uncompressed_file_is_not_a_failure(self):
+        # An edge that skipped compressing the largest file once caches it that way.
+        self.edge.overrides[(HOST, "https", "/_astro/big.css", "br")] = Response(200, {}, FILES["_astro/big.css"])
+        self.assertNotIn("brotli compression", self.failures())
 
     def test_old_ciphers_or_policy_fail(self):
         self.edge.cbc_accepted = True
