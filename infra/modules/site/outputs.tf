@@ -12,3 +12,8 @@ output "distribution_domain_name" {
   description = "The distribution's own dxxxx.cloudfront.net name, which DNS points at."
   value       = aws_cloudfront_distribution.site.domain_name
 }
+
+output "distribution_hosted_zone_id" {
+  description = "CloudFront's own Route 53 zone, for alias records (QA's)."
+  value       = aws_cloudfront_distribution.site.hosted_zone_id
+}

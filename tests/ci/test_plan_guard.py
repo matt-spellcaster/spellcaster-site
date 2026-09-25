@@ -46,12 +46,12 @@ def policy(*extra, allow=None, deny=True):
 
 
 class PlanGuard(unittest.TestCase):
-    def run_guard(self, *changes):
+    def run_guard(self, *changes, flags=()):
         with tempfile.TemporaryDirectory() as tmp:
             plan, summary = Path(tmp) / "plan.json", Path(tmp) / "summary.md"
             plan.write_text(json.dumps({"resource_changes": list(changes)}))
             with contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(io.StringIO()) as err:
-                code = plan_guard.main([str(plan), "--summary", str(summary)])
+                code = plan_guard.main([str(plan), "--summary", str(summary), *flags])
             return code, out.getvalue(), err.getvalue(), summary.read_text()
 
     def test_first_deploy_creates_everything(self):
@@ -90,6 +90,55 @@ class PlanGuard(unittest.TestCase):
                     self.assertEqual(code, 1)
                     self.assertIn(f"::error::The plan would remove or weaken {address} ({word})", err)
                     self.assertIn(f"**Refused:** {address} ({word}).", summary)
+
+    def test_qa_may_remove_and_replace_but_not_weaken(self):
+        code, out, err, summary = self.run_guard(
+            change(BUCKET, "aws_s3_bucket", "delete"),
+            change(DISTRIBUTION, "aws_cloudfront_distribution", "delete", "create", reason="replace_because_tainted"),
+            change(POLICY, "aws_s3_bucket_policy", "delete"),
+            flags=["--allow-removal"])
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("3 changes, 0 refused", out)
+        self.assertIn(f"| replace | `{DISTRIBUTION}` |", summary)
+        code, _, err, _ = self.run_guard(
+            change(BLOCK, "aws_s3_bucket_public_access_block", "update",
+                   after={**ALL_BLOCKED, "block_public_policy": False}),
+            flags=["--allow-removal"])
+        self.assertEqual(code, 1)
+        self.assertIn(f"{BLOCK} (block_public_policy off)", err)
+
+    def test_qa_checks_a_replacement_like_a_new_resource(self):
+        open_policy = policy(allow=[{"Effect": "Allow", "Principal": "*", "Action": "s3:GetObject", "Resource": "*"}])
+        code, _, err, _ = self.run_guard(
+            change(POLICY, "aws_s3_bucket_policy", "delete", "create", after=open_policy),
+            change(BLOCK, "aws_s3_bucket_public_access_block", "create", "delete",
+                   after={**ALL_BLOCKED, "block_public_policy": False}),
+            flags=["--allow-removal"])
+        self.assertEqual(code, 1)
+        self.assertIn(f"{POLICY} (the policy allows someone other than CloudFront)", err)
+        self.assertIn(f"{BLOCK} (block_public_policy off)", err)
+
+    def test_qa_removes_a_protection_only_with_its_bucket(self):
+        for rtype, address in (("aws_s3_bucket_public_access_block", BLOCK), ("aws_s3_bucket_policy", POLICY)):
+            with self.subTest(rtype):
+                for bucket in ((), ("forget",), ("delete", "create")):  # kept, forgotten, renamed
+                    rows = [change(BUCKET, "aws_s3_bucket", *bucket)] if bucket else []
+                    code, _, err, _ = self.run_guard(*rows, change(address, rtype, "delete"), flags=["--allow-removal"])
+                    self.assertEqual(code, 1, bucket)
+                    self.assertIn(f"{address} (delete)", err)
+
+    def test_qa_can_replace_a_tainted_distribution(self):
+        # The bucket policy names the new distribution, so it's unknown until apply.
+        code, _, err, _ = self.run_guard(
+            change(DISTRIBUTION, "aws_cloudfront_distribution", "delete", "create", reason="replace_because_tainted"),
+            change(POLICY, "aws_s3_bucket_policy", "update", after={}),
+            flags=["--allow-removal"])
+        self.assertEqual((code, err), (0, ""))
+        # Without a new distribution, an unknown policy is still refused.
+        code, _, err, _ = self.run_guard(change(POLICY, "aws_s3_bucket_policy", "update", after={}),
+                                         flags=["--allow-removal"])
+        self.assertEqual(code, 1)
+        self.assertIn("a policy that can't be checked until apply", err)
 
     def test_a_tainted_distribution_says_so(self):
         code, _, err, _ = self.run_guard(change(DISTRIBUTION, "aws_cloudfront_distribution", "delete", "create",

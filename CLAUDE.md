@@ -55,6 +55,7 @@ public: it has to read well, and nothing private goes in (rule 7), whatever the 
 | `npm run verify` | Everything CI's Build and E2E jobs run: lint, `astro check`, unit tests, build, dist tests, Playwright |
 | `npm run format` | Prettier |
 | `npm run launch-check` | The dist tests plus the launch gate (after `npm run build`) |
+| `npm run lighthouse` | Lighthouse (mobile) on every built page; reports in `test-results/lighthouse/` |
 | `node scripts/og-images.ts` | Remakes the committed social images and favicons after a design change |
 
 The Python CI helpers' tests use only the standard library, so they run on the host (CI's
@@ -80,16 +81,20 @@ Matthew applies `infra/bootstrap` (`docs/aws.md`); after any change to its CI ro
   `package.json` (a unit test checks).
 - `infra/bootstrap/`: the Terraform Matthew applies by hand (state, OIDC, the CI roles, the
   qa zone, both certificates, CloudFront policies, alerts). `infra/envs/prod` is applied by
-  CI's Deploy production job; `infra/envs/qa` comes in M4c. Both use `infra/modules/site`
+  CI's Deploy production job; `infra/envs/qa` by the QA up and QA down workflows. Both use `infra/modules/site`
   (bucket, viewer-request function, distribution). The function's tests sit beside it and run
   in CI's Terraform job with plain Node, since the container can't see `infra/`. Every root commits a `.terraform.lock.hcl`
   for linux_amd64 and darwin_arm64.
   Accepted Checkov findings, each with a reason, are in `infra/.checkov.yaml`.
-- `docs/aws.md` (accounts, roles, bring-up) and `docs/dns.md` (the Cloudflare records).
+- `docs/aws.md` (accounts, roles, bring-up), `docs/dns.md` (the Cloudflare records),
+  `docs/qa.md` (QA: turning it on, using it, the password) and `docs/teardown.md`.
 - `.github/workflows/compliance.yml`: Build → E2E, Security, Terraform, Evidence (a SHA-256 evidence
   bundle), then on main Sign evidence (the only job that can mint an OIDC token today) and
   Deploy production (gated on `vars.DEPLOY_ENABLED`: plan, apply, publish the tested build,
   smoke test; `docs/aws.md` has the steps).
+- `.github/workflows/qa-up.yml` and `qa-down.yml`: QA on demand, from a branch's tested
+  build, behind the password in SSM (`scripts/ci/qa_auth.sh`, sourced per step, never in
+  `GITHUB_ENV`); QA down also runs nightly. Lighthouse runs there with no AWS access.
 - `.github/rulesets/main.json`: the ruleset on `main`. When a new required check is added,
   PUT the ruleset again before opening that PR, and update `REQUIRED_CHECKS` in
   `scripts/ci/check_branch_rules.py`.

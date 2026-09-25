@@ -12,7 +12,12 @@ resource "aws_cloudfront_function" "viewer_request" {
   runtime = "cloudfront-js-2.0"
   comment = "One host name, index.html for folders, a slash on every page URL"
   publish = true
-  code    = templatefile("${path.module}/viewer-request.js", { host = var.domain })
+  # On QA, the password comes first (the digest is sensitive, so plans never show the code).
+  code = templatefile("${path.module}/viewer-request.js", {
+    host        = var.domain
+    auth_sha256 = var.basic_auth_sha256 == null ? "" : var.basic_auth_sha256
+    noindex     = var.environment == "qa"
+  })
 }
 
 resource "aws_cloudfront_distribution" "site" {

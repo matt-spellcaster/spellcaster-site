@@ -18,7 +18,8 @@
     "test:dist": "vitest run --project dist",
     "test:e2e": "playwright test",
     "verify": "npm run lint && npm run check && npm test && npm run build && npm run test:dist && npm run test:e2e",
-    "launch-check": "LAUNCH_CHECK=1 vitest run --project dist"
+    "launch-check": "LAUNCH_CHECK=1 vitest run --project dist",
+    "lighthouse": "node scripts/lighthouse.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "8.0.1",
@@ -44,6 +45,7 @@
     "eslint-plugin-astro": "3.2.0",
     "eslint-plugin-jsx-a11y-x": "0.2.0",
     "globals": "17.12.0",
+    "lighthouse": "13.4.1",
     "prettier": "3.9.7",
     "prettier-plugin-astro": "1.0.0",
     "typescript": "6.0.3",

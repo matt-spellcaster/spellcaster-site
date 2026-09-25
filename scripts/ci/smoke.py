@@ -9,15 +9,21 @@ a visitor will once DNS points --host there. It checks that the home page and a 
 folder are the tested build's own files, the security headers, caching, compression, every redirect (other
 host names, http, a page URL without its slash), the 404 page, and TLS: modern TLS 1.2
 works, the old CBC ciphers don't, and the distribution's policy is TLSv1.2_2025.
+
+On QA (--noindex --auth-header-env QA_AUTH_HEADER) every HTTPS request carries the
+Authorization header from that environment variable, never from the command line, and never
+over plain http. It also checks that a request without it, or with a wrong one, gets 401.
 Standard library only.
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import http.client
 import json
+import os
 import re
 import socket
 import ssl
@@ -97,11 +103,16 @@ class Site:
     files: dict[str, str]  # the manifest: path -> sha256
     dist: Path
     noindex: bool = False
+    auth: str | None = None  # QA's Authorization header
     fetch: Callable[..., Response] = fetch
     handshake: Callable[..., bool] = tls_handshake
     policy: Callable[[], str] | None = None
 
-    def get(self, path: str, host: str | None = None, **kwargs) -> Response:
+    def get(self, path: str, host: str | None = None, auth: bool = True, **kwargs) -> Response:
+        """GET path, with the password on QA unless auth is False. Never over plain http, where
+        anyone on the way could read it: CloudFront redirects http before the function asks."""
+        if self.auth and auth and kwargs.get("scheme", "https") == "https":
+            kwargs["headers"] = {**kwargs.get("headers", {}), "Authorization": self.auth}
         return self.fetch(self.edge, host or self.host, path, **kwargs)
 
 
@@ -178,6 +189,24 @@ def check_missing_page(site: Site) -> list[str]:
     return problems
 
 
+def check_password(site: Site) -> list[str]:
+    """QA only: no password, or a wrong one, gets 401 with noindex and nothing else."""
+    wrong = "Basic " + base64.b64encode(b"qa:not-the-password").decode()
+    problems = []
+    for label, headers in (("without a password", {}), ("with a wrong password", {"Authorization": wrong})):
+        r = site.get("/", auth=False, headers=headers)
+        problems += [f"{label}: {p}" for p in status(r, 401)]
+        if not r.headers.get("www-authenticate", "").startswith("Basic "):
+            problems.append(f"{label}: www-authenticate {r.headers.get('www-authenticate')!r}")
+        if r.headers.get("x-robots-tag") != "noindex, nofollow":
+            problems.append(f"{label}: x-robots-tag {r.headers.get('x-robots-tag')!r}")
+        if r.headers.get("strict-transport-security") != SECURITY_HEADERS["strict-transport-security"]:
+            problems.append(f"{label}: HSTS {r.headers.get('strict-transport-security')!r}")
+        if sha256(r.body) == site.files["index.html"]:
+            problems.append(f"{label}: the home page came back")
+    return problems
+
+
 def check_http(site: Site) -> list[str]:
     r = site.get("/", scheme="http")
     problems = status(r, 301)
@@ -244,11 +273,12 @@ CHECKS = [
     ("brotli compression", check_brotli),
     ("TLS", check_tls),
 ]
+PASSWORD_CHECK = ("no password, no site", check_password)
 
 
 def run_checks(site: Site) -> list[dict]:
     rows = []
-    for name, check in CHECKS:
+    for name, check in ([PASSWORD_CHECK] if site.auth else []) + CHECKS:
         try:
             problems = check(site)
         except Exception as e:  # a network error is a failed check, not a crash
@@ -266,11 +296,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--manifest", type=Path, required=True)
     p.add_argument("--distribution-id", help="also check the TLS policy through the CloudFront API")
     p.add_argument("--noindex", action="store_true", help="expect X-Robots-Tag: noindex (QA)")
+    p.add_argument("--auth-header-env", metavar="NAME",
+                   help="send the Authorization header held in this environment variable, and check 401 without it (QA)")
     p.add_argument("--out", type=Path, help="write the results here as JSON")
     args = p.parse_args(argv)
 
+    auth = None
+    if args.auth_header_env:
+        auth = os.environ.get(args.auth_header_env)
+        if not auth:
+            p.error(f"--auth-header-env: {args.auth_header_env} is empty or not set")
     site = Site(args.host, args.edge, args.redirect_host, json.loads(args.manifest.read_text())["files"], args.dist,
-                args.noindex, policy=(lambda: tls_policy(args.distribution_id)) if args.distribution_id else None)
+                args.noindex, auth, policy=(lambda: tls_policy(args.distribution_id)) if args.distribution_id else None)
     rows = run_checks(site)
     for row in rows:
         print(f"{'ok  ' if row['ok'] else 'FAIL'}  {row['check']}")
