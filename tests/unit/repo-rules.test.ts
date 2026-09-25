@@ -33,6 +33,28 @@ describe('CSP bans', () => {
   });
 });
 
+describe('the demo', () => {
+  // The demo's own code, not the tool's export (src/data/demo/), whose text it only draws.
+  const demo = [...filesUnder('src/components/demo'), ...filesUnder('src/lib/demo')];
+
+  it('draws every piece of text as a text node, never as HTML', () => {
+    const html =
+      /dangerouslySetInnerHTML|innerHTML|outerHTML|insertAdjacentHTML|set:html|createContextualFragment/;
+    expect(demo.filter((f) => html.test(read(f)))).toEqual([]);
+  });
+
+  it('makes no network request and loads no code later', () => {
+    const network = /\bfetch\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|\bimport\(/;
+    expect(demo.filter((f) => network.test(read(f)))).toEqual([]);
+  });
+
+  it('writes its own copy with no em or en dashes (CLAUDE.md rule 6)', () => {
+    // src/lib/demo/ writes the tool's text, dashes and all; the components hold the demo's own.
+    const own = filesUnder('src/components/demo');
+    expect(own.filter((f) => /[\u2013\u2014]/.test(read(f)))).toEqual([]);
+  });
+});
+
 describe('design', () => {
   it('colours come from @theme, not one-off values in class names', () => {
     // A class like stroke-[#394150] would skip the contrast test; add a token instead.

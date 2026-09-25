@@ -9,6 +9,7 @@
   color: var(--color-ink);
 }
 .case-study > p,
+.case-study > details > p,
 .case-study > ul {
   margin-top: 1rem;
   font-size: 1.1875rem;
@@ -29,8 +30,9 @@
   font-weight: 500;
   color: var(--color-ink);
 }
-/* Links inside text are underlined, so they don't rely on colour alone. */
-.case-study a {
+/* Links inside text are underlined, so they don't rely on colour alone. Links styled as
+   buttons (the demo's) carry their own classes. */
+.case-study a:not([class]) {
   color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 4px;
@@ -95,4 +97,26 @@
 .token.variable,
 .token.number {
   color: var(--color-decide);
+}
+
+/* The screenshots of the review, under the demo: closed until asked for, and there without
+   JavaScript too. */
+.case-study > details.screenshots {
+  margin-top: 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  padding: 0 1rem;
+}
+.case-study > details.screenshots > summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+.case-study > details.screenshots[open] {
+  padding-bottom: 0.5rem;
 }

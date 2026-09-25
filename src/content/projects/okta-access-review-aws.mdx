@@ -14,6 +14,7 @@ shows:
 ---
 
 import Figure from '../../components/Figure.astro';
+import BeTheCiso from '../../components/demo/BeTheCiso.tsx';
 import architecture from '../../assets/okta/architecture.svg';
 import open from '../../assets/okta/slack-review-open.png';
 import cards from '../../assets/okta/slack-review-cards.png';
@@ -29,10 +30,15 @@ Offboarding has a gap of its own. Deactivating someone's Okta account doesn't to
 tokens they hold, the service accounts they own, or their access in GitHub. Those keep working,
 and a normal review never looks at them. This one does.
 
-## What a review looks like
+## Be the CISO
 
-These are from a demo run with **Acme**, a fictional company, sent through the same code
-the Lambda functions run. The reviewer's name is blacked out.
+<BeTheCiso client:visible />
+
+<details class="screenshots">
+<summary>DRAFT: The same review as screenshots</summary>
+
+These are from a demo run with **Acme** sent through the same code the Lambda functions run.
+The reviewer's name is blacked out.
 
 <Figure
   src={open}
@@ -60,6 +66,8 @@ the Lambda functions run. The reviewer's name is blacked out.
   alt="Jira Service Management: sub-tickets for leaver removals, revokes and fixes in the Acme demo"
   caption="4. One Jira ticket for each leaver, each revoke and each finding to fix. The tracking ticket closes itself once every ticket is settled."
 />
+
+</details>
 
 Every run also writes a PDF report. The [sample report](https://github.com/matt-spellcaster/okta-access-review-aws/blob/master/docs/sample-report.pdf)
 is from the same fictional company, and it's incomplete on purpose: the demo plants four data

@@ -457,3 +457,20 @@ export function channelFinished(
     ],
   };
 }
+
+const KIND: Record<string, string> = {
+  app: 'App',
+  admin_role: 'Admin role',
+  admin_group: 'Admin group',
+  hr_record: 'HR record',
+  cross_source: 'Outside this decision',
+};
+
+/** The "Reason needed" modal's text (slack_review.reason_modal). */
+export function reasonModalText(item: Item, decision: string, max: number): string {
+  return clip(
+    `*${LABEL[decision]}* ${(KIND[item.kind] ?? item.kind).toLowerCase()} *${esc(item.target)}* for ` +
+      `*${esc(item.user)}*.\nProposed was *${LABEL[item.proposed]}*: ${esc(item.reason)}`,
+    max,
+  );
+}
