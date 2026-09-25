@@ -24,7 +24,7 @@ const CATEGORIES = [...Object.keys(REQUIRED), ...Object.keys(WARN)];
 function pages(dir = 'dist'): string[] {
   return readdirSync(dir, { withFileTypes: true, recursive: true })
     .filter((f) => f.isFile() && f.name === 'index.html')
-    .map((f) => `/${relative('dist', f.parentPath).split(sep).join('/')}/`.replace('//', '/'))
+    .map((f) => `/${relative(dir, f.parentPath).split(sep).join('/')}/`.replace('//', '/'))
     .sort();
 }
 

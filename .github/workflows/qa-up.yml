@@ -9,10 +9,6 @@ on:
 
 permissions: {} # every job asks for exactly what it needs
 
-concurrency:
-  group: qa-infra # shared with QA down, so the two never run at once
-  cancel-in-progress: false # never stop Terraform halfway
-
 env:
   ASTRO_TELEMETRY_DISABLED: '1'
   # The same pins as compliance.yml (a unit test checks they agree).
@@ -51,6 +47,10 @@ jobs:
     environment:
       name: qa
       url: https://qa.spellcaster.foo/
+    # Only this job holds the lock, so Find and Lighthouse never keep QA down waiting.
+    concurrency:
+      group: qa-infra # shared with QA down, so Terraform never runs twice at once
+      cancel-in-progress: false # never stop Terraform halfway
     permissions:
       contents: read
       actions: read # to download the tested build from its Compliance run

@@ -13,7 +13,8 @@ account. Standard library only.
 
 QA is torn down every night and rebuilt at will, so the QA workflows pass --allow-removal:
 removing or replacing is fine there, but turning a protection off or opening the bucket
-policy is still refused.
+policy is still refused. A replacement is checked like a new resource, and the public access
+block, versioning and policy may go only with the bucket.
 """
 
 from __future__ import annotations
@@ -100,16 +101,29 @@ def weakens(rtype: str, action: str, after: dict) -> str | None:
 
 def refused(rows: list[dict], allow_removal: bool = False) -> list[str]:
     problems = []
+    replaced = {r["type"] for r in rows if r["action"] == "replace"}
+    deleted = {r["type"] for r in rows if r["action"] == "delete"}
     for row in rows:
         if row["type"] not in PROTECTED:
             continue
-        if row["action"] not in ("create", "update"):
-            if allow_removal:
+        action = row["action"]
+        if allow_removal:
+            if action == "replace":
+                # The new one is checked like any new one.
+                action = "create"
+            elif action in ("delete", "forget") and (row["type"] in ("aws_s3_bucket", "aws_cloudfront_distribution")
+                                                     or "aws_s3_bucket" in deleted):
+                # A protection may go only with its bucket (a forgotten or renamed bucket still needs it).
                 continue
+            elif action == "update" and row["type"] == "aws_s3_bucket_policy" \
+                    and "aws_cloudfront_distribution" in replaced:
+                # The policy names the new distribution, whose ARN isn't known until apply.
+                action = "create"
+        if action not in ("create", "update"):
             # A distribution whose first create timed out is tainted: docs/aws.md says what to do.
             tainted = ", tainted" if row["reason"] == "replace_because_tainted" else ""
-            problems.append(f"{row['address']} ({row['action']}{tainted})")
-        elif weakness := weakens(row["type"], row["action"], row["after"]):
+            problems.append(f"{row['address']} ({action}{tainted})")
+        elif weakness := weakens(row["type"], action, row["after"]):
             problems.append(f"{row['address']} ({weakness})")
     return problems
 
@@ -140,10 +154,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.summary:
         with args.summary.open("a") as f:
             f.write(summary(rows, problems))
+    what_to_do = ("On QA, run QA down, then QA up (docs/qa.md)." if args.allow_removal else
+                  "A deploy never removes the site's bucket, its distribution or the bucket's protections; if "
+                  "that's really meant, it's done by hand (docs/aws.md).")
     for problem in problems:
-        print(f"::error::The plan would remove or weaken {problem}. A deploy never removes the site's bucket, "
-              "its distribution or the bucket's protections; if that's really meant, it's done by hand "
-              "(docs/aws.md).", file=sys.stderr)
+        print(f"::error::The plan would remove or weaken {problem}. {what_to_do}", file=sys.stderr)
     print(f"{len(rows)} changes, {len(problems)} refused")
     return 1 if problems else 0
 

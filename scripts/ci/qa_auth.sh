@@ -15,6 +15,13 @@ if [ "${#qa_auth_password}" -lt 24 ]; then
   echo "::error::The QA password in SSM is shorter than 24 characters. Production can read the function's digest, so make it long and random (docs/qa.md)."
   return 1
 fi
+# A mask covers one line, so a second line would reach the public log.
+case "$qa_auth_password" in
+  *[![:print:]]*)
+    echo "::error::The QA password in SSM must be one line of printable characters (docs/qa.md)."
+    return 1
+    ;;
+esac
 echo "::add-mask::${qa_auth_password}"
 qa_auth_base64=$(printf 'qa:%s' "$qa_auth_password" | base64 -w0)
 echo "::add-mask::${qa_auth_base64}"

@@ -65,8 +65,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"passed over {note}", file=sys.stderr)
     if run_id is None:
         print(f"::error::No tested build of {args.sha}. QA publishes what the Compliance workflow built and "
-              "tested: open a pull request for this branch (or push to it again), wait for Build and E2E to pass, "
-              "then run QA up again. A build is kept for 30 days.", file=sys.stderr)
+              "tested: open a pull request for this branch (or run Compliance on it from the Actions tab), wait for "
+              "Build and E2E to pass, then run QA up again. A build is kept for 30 days.", file=sys.stderr)
         return 1
     print(run_id)
     return 0

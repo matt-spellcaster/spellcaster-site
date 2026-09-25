@@ -149,10 +149,6 @@ class Smoke(unittest.TestCase):
         self.assertNotIn("TLS", failures)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 QA, QA_EDGE = "qa.spellcaster.foo", "d222222abcdef8.cloudfront.net"
 AUTH = "Basic cWE6c2VjcmV0"  # qa:secret
 
@@ -220,3 +216,7 @@ class SmokeQa(unittest.TestCase):
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
             smoke.main(["--host", QA, "--edge", QA_EDGE, "--dist", ".", "--manifest", "m.json",
                         "--auth-header-env", "SMOKE_TEST_NO_SUCH_VARIABLE"])
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -63,6 +63,12 @@ class FindTestedBuild(unittest.TestCase):
         self.assertFalse(find_tested_build.passed(jobs(Build="success", E2E=None)["jobs"]))
         self.assertFalse(find_tested_build.passed(jobs(Build="success")["jobs"]))
 
+    def test_the_jobs_it_waits_for_are_compliance_jobs(self):
+        # A renamed job would make every run look untested.
+        compliance = (Path(__file__).resolve().parents[2] / ".github" / "workflows" / "compliance.yml").read_text()
+        for name in find_tested_build.TESTED_BY:
+            self.assertRegex(compliance, rf"(?m)^    name: {name}$")
+
     def test_no_run_says_to_open_a_pull_request(self):
         api = FakeApi([], {}, {})
         with mock.patch.object(find_tested_build, "get", lambda path, token: api(path)), \

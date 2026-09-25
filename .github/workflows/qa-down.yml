@@ -11,10 +11,6 @@ on:
 
 permissions: {} # every job asks for exactly what it needs
 
-concurrency:
-  group: qa-infra # shared with QA up, so the two never run at once
-  cancel-in-progress: false # never stop Terraform halfway
-
 env:
   # The same pins as compliance.yml (a unit test checks they agree).
   TERRAFORM_VERSION: '1.16.3'
@@ -28,6 +24,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45 # disabling a distribution before deleting it can take 15 minutes
     environment: qa
+    concurrency:
+      group: qa-infra # shared with QA up's Deploy QA job, so Terraform never runs twice at once
+      cancel-in-progress: false # never stop Terraform halfway
     permissions:
       contents: read
       id-token: write # to assume portfolio-qa through GitHub's OIDC provider
@@ -60,9 +59,10 @@ jobs:
           TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
           TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
           TF_VAR_origin_access_control_id: ${{ vars.ORIGIN_ACCESS_CONTROL_ID }}
+          # Terraform wants every variable, even to destroy, but destroying never uses the password.
+          # So any digest will do, and QA comes down even if the password is gone or broken.
+          TF_VAR_basic_auth_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
         run: |
-          # Terraform wants every variable, even to destroy, so the digest too (masked, this step only).
-          . "$GITHUB_WORKSPACE/scripts/ci/qa_auth.sh"
           # CI logs are public: only Terraform's summary line and any error reach the log.
           terraform init -lockfile=readonly -backend-config="bucket=${TF_STATE_BUCKET}" -no-color \
             > "$RUNNER_TEMP/init.log" 2>&1 || { sed -n '/Error/,$p' "$RUNNER_TEMP/init.log"; exit 1; }

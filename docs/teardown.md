@@ -34,8 +34,10 @@ records.
 5. **Bootstrap.** Two resources refuse to be destroyed (`prevent_destroy`): the state bucket
    and the qa zone. And the state bucket holds bootstrap's own state. So, from
    `infra/bootstrap`:
-   1. Move the state back to your Mac: `printf 'terraform {\n  backend "local" {}\n}\n' > override.tf`,
-      then `AWS_PROFILE=portfolio-admin terraform init -migrate-state` and answer `yes`.
+   1. Move the state back to your Mac. First `AWS_PROFILE=portfolio-admin terraform init -backend-config=backend.hcl`,
+      so Terraform knows where the state is now. Then `printf 'terraform {\n  backend "local" {}\n}\n' > override.tf`
+      and `AWS_PROFILE=portfolio-admin terraform init -migrate-state`, and answer `yes`.
+      `AWS_PROFILE=portfolio-admin terraform state list` should now list bootstrap's resources.
    2. In `state.tf` and `dns.tf`, delete the two `prevent_destroy = true` lines (don't commit
       that).
    3. Empty the state bucket in the console, the same way as step 3. The qa zone must hold

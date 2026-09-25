@@ -25,7 +25,15 @@ Until now the `qa` environment in GitHub has been locked: no branch may use it, 
 assume `portfolio-qa`. Production's distribution now holds `spellcaster.foo` and `www`, which
 was the condition for unlocking it ([aws.md](aws.md), "Two things IAM can't fence").
 
-**1. Give the `qa` environment its role.** From `infra/bootstrap`:
+**1. Store the password** (skip this if it's already there). It's long and random, and on
+one line:
+
+```bash
+aws sso login --profile portfolio-admin
+aws ssm put-parameter --profile portfolio-admin --region us-east-1 --name /portfolio/qa/basic-auth-password --type SecureString --value "$(openssl rand -base64 30)"
+```
+
+**2. Give the `qa` environment its role.** From `infra/bootstrap`:
 
 ```bash
 aws sso login --profile portfolio-admin
@@ -33,7 +41,7 @@ AWS_PROFILE=portfolio-admin terraform init -backend-config=backend.hcl
 AWS_PROFILE=portfolio-admin terraform output -raw qa_role_arn | gh secret set AWS_ROLE_ARN --env qa --repo matt-spellcaster/spellcaster-site-WIP
 ```
 
-**2. Let branches deploy to it.** QA up runs on whichever branch you pick, and QA down's
+**3. Let branches deploy to it.** QA up runs on whichever branch you pick, and QA down's
 nightly run is on `main`. GitHub matches branch names with `*` stopping at a `/`, so both
 patterns are needed:
 
@@ -91,7 +99,9 @@ the nightly run. QA down destroys everything `infra/envs/qa` made, then lists an
 (`scripts/ci/leftovers.py --scope qa`) and fails if it finds something. It's safe to run when
 QA is already down.
 
-Only one of QA up and QA down runs at a time; the other waits.
+QA up's deploy and QA down never run Terraform at the same time: one waits for the other.
+GitHub keeps only one waiting, though, so a newer run replaces an older one that hasn't
+started. If a night's QA down was replaced that way, the next night's takes QA down.
 
 ## Checking on real devices
 
@@ -146,7 +156,7 @@ Make a new long random one, and store it over the old:
 aws ssm put-parameter --profile portfolio-admin --region us-east-1 --name /portfolio/qa/basic-auth-password --type SecureString --overwrite --value "$(openssl rand -base64 30)"
 ```
 
-The next QA up uses it. QA up refuses a password under 24 characters.
+The next QA up uses it. QA up refuses a password under 24 characters, or on more than one line.
 
 ## Cost
 
