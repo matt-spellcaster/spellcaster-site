@@ -1,10 +1,12 @@
 """smoke: each check passes on a correct deployment and names what's wrong on a broken one."""
 
 import hashlib
+import ssl
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "ci"))
 
@@ -61,6 +63,9 @@ class FakeEdge:
 
 class Smoke(unittest.TestCase):
     def setUp(self):
+        sleep = mock.patch("smoke.time.sleep")  # check_brotli waits between tries
+        sleep.start()
+        self.addCleanup(sleep.stop)
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         dist = Path(tmp.name)
@@ -98,7 +103,12 @@ class Smoke(unittest.TestCase):
     def test_a_redirect_without_hsts_fails(self):
         self.edge.overrides[(HOST, "https", "/projects/demo", None)] = Response(
             301, {"location": f"https://{HOST}/projects/demo/"}, b"")
-        self.assertEqual(self.failures()["a page URL without its slash redirects"], ["no HSTS header on the redirect"])
+        self.assertEqual(self.failures()["a page URL without its slash redirects"], ["HSTS on the redirect: None"])
+
+    def test_a_folder_page_that_isnt_rewritten_to_index_fails(self):
+        self.edge.overrides[(HOST, "https", "/projects/demo/", None)] = Response(404, dict(SECURITY_HEADERS), FILES["404.html"])
+        self.assertEqual(self.failures()["a page in a folder is the tested build"],
+                         ["status 404, expected 200", "/projects/demo/ isn't the tested build's projects/demo/index.html"])
 
     def test_s3_error_instead_of_the_404_page_fails(self):
         self.edge.overrides[(HOST, "https", smoke.MISSING_PAGE, None)] = Response(403, {}, b"<Error>AccessDenied</Error>")
@@ -122,6 +132,10 @@ class Smoke(unittest.TestCase):
             "a TLS 1.2 handshake with only CBC ciphers succeeded",
             "the distribution's minimum protocol version is 'TLSv1.2_2021', expected 'TLSv1.2_2025'",
         ])
+
+    def test_ciphers_this_machine_cant_offer_raise_rather_than_pass(self):
+        with self.assertRaises(ssl.SSLError):  # before any connection, so no network needed
+            smoke.tls_handshake("127.0.0.1", HOST, "NO-SUCH-CIPHER")
 
     def test_a_network_error_is_a_failed_check(self):
         def unreachable(*args, **kwargs):

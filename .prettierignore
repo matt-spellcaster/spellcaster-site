@@ -11,3 +11,5 @@ evidence/
 # Markdown keeps its hand-wrapped line lengths.
 *.md
 dist-manifest.json
+# Hidden from the dev container, so npm run format can't reach it (see eslint.config.ts).
+infra/

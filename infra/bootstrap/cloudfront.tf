@@ -29,6 +29,8 @@ resource "aws_cloudfront_response_headers_policy" "site" {
   comment = each.key == "qa" ? "Security headers, plus noindex" : "Security headers"
 
   security_headers_config {
+    # Copies of this value must change with it: infra/modules/site/viewer-request.js (for the
+    # function's own redirects) and its test, and SECURITY_HEADERS in scripts/ci/smoke.py.
     strict_transport_security {
       access_control_max_age_sec = 31536000
       include_subdomains         = true

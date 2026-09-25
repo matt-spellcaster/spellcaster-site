@@ -5,8 +5,8 @@
         --distribution-id <id> --out results/smoke.json
 
 Every request goes to --edge but names --host, in TLS and in the Host header, so it sees what
-a visitor will once DNS points --host there. It checks that the home page is the tested
-build's own index.html, the security headers, caching, compression, every redirect (other
+a visitor will once DNS points --host there. It checks that the home page and a page in a
+folder are the tested build's own files, the security headers, caching, compression, every redirect (other
 host names, http, a page URL without its slash), the 404 page, and TLS: modern TLS 1.2
 works, the old CBC ciphers don't, and the distribution's policy is TLSv1.2_2025.
 Standard library only.
@@ -118,8 +118,8 @@ def redirect(r: Response, location: str) -> list[str]:
     problems = status(r, 301)
     if r.headers.get("location") != location:
         problems.append(f"redirects to {r.headers.get('location')!r}, expected {location!r}")
-    if not r.headers.get("strict-transport-security", "").startswith("max-age=31536000"):
-        problems.append("no HSTS header on the redirect")
+    if r.headers.get("strict-transport-security") != SECURITY_HEADERS["strict-transport-security"]:
+        problems.append(f"HSTS on the redirect: {r.headers.get('strict-transport-security')!r}")
     return problems
 
 
@@ -148,11 +148,27 @@ def check_home(site: Site) -> list[str]:
     return problems + security_headers(r, site.noindex)
 
 
-def check_page_without_slash(site: Site) -> list[str]:
+def folder_page(site: Site) -> str:
+    """The first page in a folder, like projects/x: the home page alone can't show the index.html
+    rewrite works, because CloudFront's default root object serves / without it."""
     pages = sorted(m[1] for f in site.files if (m := re.fullmatch(r"(.+)/index\.html", f)))
     if not pages:
-        return ["the build has no page in a folder to try"]
-    return redirect(site.get(f"/{pages[0]}"), f"https://{site.host}/{pages[0]}/")
+        raise ValueError("the build has no page in a folder to try")
+    return pages[0]
+
+
+def check_page(site: Site) -> list[str]:
+    page = folder_page(site)
+    r = site.get(f"/{page}/")
+    problems = status(r, 200)
+    if sha256(r.body) != site.files[f"{page}/index.html"]:
+        problems.append(f"/{page}/ isn't the tested build's {page}/index.html")
+    return problems
+
+
+def check_page_without_slash(site: Site) -> list[str]:
+    page = folder_page(site)
+    return redirect(site.get(f"/{page}"), f"https://{site.host}/{page}/")
 
 
 def check_missing_page(site: Site) -> list[str]:
@@ -221,6 +237,7 @@ def check_tls(site: Site) -> list[str]:
 
 CHECKS = [
     ("home page is the tested build, with its headers", check_home),
+    ("a page in a folder is the tested build", check_page),
     ("a page URL without its slash redirects", check_page_without_slash),
     ("a missing page gets the 404 page", check_missing_page),
     ("http redirects to https", check_http),

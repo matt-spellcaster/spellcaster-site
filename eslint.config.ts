@@ -14,6 +14,9 @@ export default defineConfig(
     'test-results/',
     'results/',
     'evidence/',
+    // The dev container can't see infra/, so local lint never could. Its one JavaScript file,
+    // the CloudFront function, is tested in CI's Terraform job instead.
+    'infra/',
   ]),
   js.configs.recommended,
   tseslint.configs.strict,

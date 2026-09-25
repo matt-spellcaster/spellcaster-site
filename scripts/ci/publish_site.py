@@ -6,8 +6,9 @@
    a content hash in their names, so browsers keep them for a year; everything else is
    checked again on each visit, and CloudFront keeps it a day (the invalidation clears it).
    _astro goes first and HTML last, so no page ever names a file that isn't there yet.
-2. Deletes what the build no longer has. An old _astro file stays 7 days, for pages that
-   are still open in someone's browser.
+2. Deletes what the build no longer has, except old _astro files: a page that's still open
+   in someone's browser, or still cached at an edge, may ask for one. Their names never clash,
+   and in production's versioned bucket a delete would free no space anyway.
 3. Invalidates /* and waits until CloudFront has finished.
 
 Runs the AWS CLI (preinstalled on GitHub's runners) with the job's credentials. Standard
@@ -21,7 +22,6 @@ import json
 import re
 import subprocess
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
 from pathlib import Path, PurePosixPath
 
 CONTENT_TYPES = {
@@ -42,7 +42,6 @@ CONTENT_TYPES = {
 }
 IMMUTABLE = "public, max-age=31536000, immutable"
 REVALIDATE = "public, max-age=0, s-maxage=86400, must-revalidate"
-KEEP_OLD_ASSETS = timedelta(days=7)
 # Names go to the AWS CLI as --include patterns, so none may hold a pattern character.
 SAFE_NAME = re.compile(r"[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*")
 
@@ -76,18 +75,11 @@ def plan_uploads(files: list[str]) -> list[Group]:
     return sorted(groups.values(), key=order)
 
 
-def stale_keys(existing: list[dict], current: set[str], now: datetime) -> tuple[list[str], int]:
-    """Keys to delete now, and how many old _astro files are kept for the time being."""
-    delete, kept = [], 0
-    for obj in existing:
-        key = obj["Key"]
-        if key in current:
-            continue
-        if is_asset(key) and now - datetime.fromisoformat(obj["LastModified"]) < KEEP_OLD_ASSETS:
-            kept += 1
-        else:
-            delete.append(key)
-    return delete, kept
+def stale_keys(existing: list[str], current: set[str]) -> tuple[list[str], int]:
+    """Keys to delete, and how many old _astro files are kept."""
+    old = [key for key in existing if key not in current]
+    delete = [key for key in old if not is_asset(key)]
+    return delete, len(old) - len(delete)
 
 
 class Aws:
@@ -98,9 +90,8 @@ class Aws:
         return done.stdout
 
 
-def publish(dist: Path, bucket: str, distribution_id: str, aws=None, now: datetime | None = None) -> str:
+def publish(dist: Path, bucket: str, distribution_id: str, aws=None) -> str:
     aws = aws or Aws()
-    now = now or datetime.now(timezone.utc)
     files = [p.relative_to(dist).as_posix() for p in sorted(dist.rglob("*")) if p.is_file()]
     if "index.html" not in files:
         raise ValueError(f"{dist}/index.html is missing")
@@ -113,8 +104,8 @@ def publish(dist: Path, bucket: str, distribution_id: str, aws=None, now: dateti
             "--only-show-errors", "--no-progress")
 
     listing = aws("s3api", "list-objects-v2", "--bucket", bucket, "--output", "json",
-                  "--query", "Contents[].{Key: Key, LastModified: LastModified}")
-    delete, kept = stale_keys(json.loads(listing or "null") or [], set(files), now)
+                  "--query", "Contents[].Key")
+    delete, kept = stale_keys(json.loads(listing or "null") or [], set(files))
     for start in range(0, len(delete), 1000):  # delete-objects takes up to 1000 keys
         batch = {"Objects": [{"Key": k} for k in delete[start:start + 1000]], "Quiet": True}
         errors = json.loads(aws("s3api", "delete-objects", "--bucket", bucket, "--delete", json.dumps(batch),
@@ -127,7 +118,7 @@ def publish(dist: Path, bucket: str, distribution_id: str, aws=None, now: dateti
     aws("cloudfront", "wait", "invalidation-completed", "--distribution-id", distribution_id, "--id", invalidation)
 
     return (f"{len(files)} files uploaded in {len(groups)} groups; {len(delete)} old files deleted, "
-            f"{kept} old _astro files kept for now; invalidation {invalidation} complete")
+            f"{kept} old _astro files kept; invalidation {invalidation} complete")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -18,7 +18,7 @@ locals {
 
 resource "aws_cloudwatch_metric_alarm" "requests" {
   alarm_name          = "portfolio-production-requests"
-  alarm_description   = "More than 20,000 requests to spellcaster.foo in an hour."
+  alarm_description   = "More than 20,000 requests to ${var.domain} in an hour."
   namespace           = "AWS/CloudFront"
   metric_name         = "Requests"
   dimensions          = local.distribution
@@ -33,7 +33,7 @@ resource "aws_cloudwatch_metric_alarm" "requests" {
 
 resource "aws_cloudwatch_metric_alarm" "bytes" {
   alarm_name          = "portfolio-production-bytes"
-  alarm_description   = "More than 10 GB served by spellcaster.foo in a day."
+  alarm_description   = "More than 10 GB served by ${var.domain} in a day."
   namespace           = "AWS/CloudFront"
   metric_name         = "BytesDownloaded"
   dimensions          = local.distribution

@@ -180,7 +180,8 @@ it:
 1. Stops if `main` has moved on while it waited, so an older commit never replaces a newer one.
 2. Checks the site it downloaded is the one the Build job hashed and E2E tested.
 3. Plans `infra/envs/prod`, and stops if the plan would remove the bucket or the
-   distribution. The run's summary lists each change by name, with no values.
+   distribution, or remove or turn off the bucket's versioning, public access block or
+   policy. The run's summary lists each change by name, with no values.
 4. Applies the plan, publishes the site (`scripts/ci/publish_site.py`) and clears
    CloudFront's cache.
 5. Runs the smoke test (`scripts/ci/smoke.py`) against the distribution's `cloudfront.net`
@@ -218,6 +219,29 @@ Cloudflare records at launch (M5, [dns.md](dns.md)).
 **Undoing a deploy.** Revert the pull request. The merge deploys the reverted site. The
 production bucket keeps every old version of every file, and the role can't delete them.
 
+**If a deploy stops halfway.** Most often the first one, while CloudFront creates the
+distribution. The role can't clean up after it, so you do it as `portfolio-admin`, from
+`infra/envs/prod`:
+
+```bash
+export AWS_PROFILE=portfolio-admin TF_VAR_account_id=<account id> TF_VAR_origin_access_control_id=<oac id>
+terraform init -backend-config="bucket=<state bucket>"
+```
+
+Then, depending on what the next run's log says:
+
+- **"Error acquiring the state lock"**: the stopped run still holds the lock. Run
+  `terraform force-unlock <lock id>` with the ID from the log.
+- **The plan guard refuses `module.site.aws_cloudfront_distribution.site (replace, tainted)`**:
+  the distribution was made, but Terraform stopped waiting for it. Once the first `aws
+  cloudfront list-distributions` command above shows it `Deployed`, run
+  `terraform untaint module.site.aws_cloudfront_distribution.site`.
+- **`CNAMEAlreadyExists`**: a distribution Terraform doesn't know about holds the names. Find
+  its ID with the same command, then run
+  `terraform import module.site.aws_cloudfront_distribution.site <distribution id>`.
+
+Then rerun the failed job from the run's page. Delete the `.terraform` folder when you're done.
+
 ## Changing bootstrap later
 
 Always plan first, from `infra/bootstrap` with `backend.hcl` in place:
@@ -232,9 +256,10 @@ AWS_PROFILE=portfolio-admin terraform apply tfplan
 The state bucket and the qa zone have `prevent_destroy`, so a plan that would delete either
 one fails. After any change to `ci_roles.tf`, run the IAM checks again.
 
-## Known limits, for M4b and M4c
+## Known limits
 
-What the M4a review left open, and what the next stages must do about each:
+What the M4a review left open. `infra/envs/prod` (M4b) handles the first two; `infra/envs/qa`
+(M4c) must do the same.
 
 - **A CloudFront resource without an `Environment` tag can be claimed.** Either role may tag
   one as its own, then change or delete it. Everything bootstrap makes carries the tag. Keep
