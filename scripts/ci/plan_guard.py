@@ -10,6 +10,10 @@ its versioning, public access block and policy, or let the policy allow anything
 CloudFront reading the site. The list names each change by address and
 action only, never by value: CI logs and job summaries are public, and values can name the
 account. Standard library only.
+
+QA is torn down every night and rebuilt at will, so the QA workflows pass --allow-removal:
+removing or replacing is fine there, but turning a protection off or opening the bucket
+policy is still refused.
 """
 
 from __future__ import annotations
@@ -94,12 +98,14 @@ def weakens(rtype: str, action: str, after: dict) -> str | None:
     return None
 
 
-def refused(rows: list[dict]) -> list[str]:
+def refused(rows: list[dict], allow_removal: bool = False) -> list[str]:
     problems = []
     for row in rows:
         if row["type"] not in PROTECTED:
             continue
         if row["action"] not in ("create", "update"):
+            if allow_removal:
+                continue
             # A distribution whose first create timed out is tainted: docs/aws.md says what to do.
             tainted = ", tainted" if row["reason"] == "replace_because_tainted" else ""
             problems.append(f"{row['address']} ({row['action']}{tainted})")
@@ -123,10 +129,12 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("plan", type=Path, help="output of terraform show -json <planfile>")
     p.add_argument("--summary", type=Path, help="markdown file to append to (the job summary)")
+    p.add_argument("--allow-removal", action="store_true",
+                   help="QA: let the plan remove or replace resources; weakening one is still refused")
     args = p.parse_args(argv)
 
     rows = changes(json.loads(args.plan.read_text()))
-    problems = refused(rows)
+    problems = refused(rows, args.allow_removal)
     for row in rows:
         print(f"{row['action']:8} {row['address']}")
     if args.summary:

@@ -57,3 +57,15 @@ variable "force_destroy" {
   description = "Let terraform destroy empty the bucket first. Only QA, which is torn down every night."
   type        = bool
 }
+
+variable "basic_auth_sha256" {
+  description = "QA only: the SHA-256 (hex) of the whole Authorization header, \"Basic \" and base64 of qa:<password> (scripts/ci/qa_auth.sh). The function answers 401 to any request without it. Null for no password."
+  type        = string
+  default     = null
+  sensitive   = true
+
+  validation {
+    condition     = var.basic_auth_sha256 == null || can(regex("^[0-9a-f]{64}$", var.basic_auth_sha256))
+    error_message = "basic_auth_sha256 must be 64 lower-case hex characters, or null."
+  }
+}

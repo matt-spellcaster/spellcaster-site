@@ -1,0 +1,77 @@
+# Takes QA away: destroys everything infra/envs/qa made, then checks nothing is left. Runs
+# every night, so a forgotten QA costs nothing for long, and from the Actions tab (QA down →
+# Run workflow). It's safe when QA is already down: there's nothing to destroy, and the check
+# still runs. docs/qa.md has the rest.
+name: QA down
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 7 * * *' # 07:17 UTC, the middle of the night in the US
+
+permissions: {} # every job asks for exactly what it needs
+
+concurrency:
+  group: qa-infra # shared with QA up, so the two never run at once
+  cancel-in-progress: false # never stop Terraform halfway
+
+env:
+  # The same pins as compliance.yml (a unit test checks they agree).
+  TERRAFORM_VERSION: '1.16.3'
+  TERRAFORM_SHA256: '093b6ae9a2228af5029c41606bc96eb583553528aad1bfe7e0b4d62fc91e25d8' # linux_amd64 zip
+  TFLINT_VERSION: '0.64.0'
+  TFLINT_SHA256: 'cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537' # linux_amd64 zip
+
+jobs:
+  down:
+    name: Tear QA down
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45 # disabling a distribution before deleting it can take 15 minutes
+    environment: qa
+    permissions:
+      contents: read
+      id-token: write # to assume portfolio-qa through GitHub's OIDC provider
+    env:
+      TF_IN_AUTOMATION: '1'
+      TF_INPUT: '0'
+    steps:
+      - name: Mask the account ID
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          # Bucket names, ARNs and AWS errors contain it, and a masked role ARN doesn't hide it.
+          echo "::add-mask::${AWS_ACCOUNT_ID}"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: qa-down-${{ github.run_id }}
+          role-skip-session-tagging: true # the trust policy allows no sts:TagSession
+          aws-region: us-east-1
+          allowed-account-ids: ${{ secrets.AWS_ACCOUNT_ID }}
+          mask-aws-account-id: true
+      - name: Install Terraform (checksum verified)
+        run: scripts/ci/install_terraform.sh
+      - name: Destroy
+        working-directory: infra/envs/qa
+        env:
+          TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+          TF_VAR_origin_access_control_id: ${{ vars.ORIGIN_ACCESS_CONTROL_ID }}
+        run: |
+          # Terraform wants every variable, even to destroy, so the digest too (masked, this step only).
+          . "$GITHUB_WORKSPACE/scripts/ci/qa_auth.sh"
+          # CI logs are public: only Terraform's summary line and any error reach the log.
+          terraform init -lockfile=readonly -backend-config="bucket=${TF_STATE_BUCKET}" -no-color \
+            > "$RUNNER_TEMP/init.log" 2>&1 || { sed -n '/Error/,$p' "$RUNNER_TEMP/init.log"; exit 1; }
+          terraform destroy -auto-approve -no-color \
+            > "$RUNNER_TEMP/destroy.log" 2>&1 || { sed -n '/Error/,$p' "$RUNNER_TEMP/destroy.log"; exit 1; }
+          grep -E '^(Destroy complete|No changes)' "$RUNNER_TEMP/destroy.log" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Check nothing is left
+        if: success() || failure()
+        run: |
+          # Steps run as bash -e without pipefail, so without this a failed check passes as tee.
+          set -o pipefail
+          python3 scripts/ci/leftovers.py --scope qa | tee -a "$GITHUB_STEP_SUMMARY"

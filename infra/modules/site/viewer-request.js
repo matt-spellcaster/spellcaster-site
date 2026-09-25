@@ -1,13 +1,31 @@
 // CloudFront viewer-request function (runtime cloudfront-js-2.0), rendered by Terraform's
-// templatefile() with the site's one name. It runs on every request, before the cache.
+// templatefile() with the site's one name and, on QA, the password's digest. It runs on every
+// request, before the cache.
+var crypto = require('crypto');
+
 var HOST = '${host}';
-// The same as bootstrap's header policy, which doesn't reach a function's own responses.
+// QA only: the SHA-256 (hex) of the whole Authorization header a visitor must send, so the
+// function never holds the password itself. Empty on production, which has no password.
+var AUTH_SHA256 = '${auth_sha256}';
+// The same as bootstrap's header policies, which don't reach a function's own responses.
 var HSTS = 'max-age=31536000; includeSubDomains; preload';
+var NOINDEX = ${noindex};
 
 function handler(event) {
   var request = event.request;
   var uri = request.uri;
   var host = request.headers.host ? request.headers.host.value.toLowerCase() : '';
+
+  // The password comes first, so nothing on QA answers without it, redirects included.
+  if (AUTH_SHA256 !== '') {
+    var auth = request.headers.authorization ? request.headers.authorization.value : '';
+    if (crypto.createHash('sha256').update(auth).digest('hex') !== AUTH_SHA256) {
+      return respond(401, 'Unauthorized', {
+        'www-authenticate': { value: 'Basic realm="QA", charset="UTF-8"' },
+        'cache-control': { value: 'no-store' }
+      });
+    }
+  }
 
   // One name only: www and the distribution's own *.cloudfront.net name move to HOST.
   if (host !== HOST) {
@@ -30,14 +48,15 @@ function handler(event) {
 }
 
 function redirect(path) {
-  return {
-    statusCode: 301,
-    statusDescription: 'Moved Permanently',
-    headers: {
-      location: { value: 'https://' + HOST + path },
-      'strict-transport-security': { value: HSTS }
-    }
-  };
+  return respond(301, 'Moved Permanently', { location: { value: 'https://' + HOST + path } });
+}
+
+function respond(statusCode, statusDescription, headers) {
+  headers['strict-transport-security'] = { value: HSTS };
+  if (NOINDEX) {
+    headers['x-robots-tag'] = { value: 'noindex, nofollow' };
+  }
+  return { statusCode: statusCode, statusDescription: statusDescription, headers: headers };
 }
 
 // The query string as it arrived, so a redirect keeps it.

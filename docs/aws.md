@@ -15,7 +15,7 @@ this repository: they live in your AWS profiles, in git-ignored files and in Git
 |---|---|---|
 | `infra/bootstrap` | You, by hand | The state bucket, GitHub's OIDC provider, the two CI roles, the `qa.spellcaster.foo` zone and its fixed records, both certificates (production and QA), the origin access control, both security-header policies, the alerts topic and a $5 budget |
 | `infra/envs/prod` (M4b) | CI, `portfolio-prod` role | The production bucket, CloudFront function and distribution, traffic alarms |
-| `infra/envs/qa` (M4c) | CI, `portfolio-qa` role | The same for QA, plus its DNS record; built and torn down on demand |
+| `infra/envs/qa` (M4c) | CI, `portfolio-qa` role | The same for QA, behind a password, plus its A and AAAA records; built and torn down on demand ([qa.md](qa.md)) |
 
 Bootstrap holds everything that must outlive a deploy, or that CI must never change. Both
 `infra/envs` roots build their site with the same module, `infra/modules/site`.
@@ -44,8 +44,8 @@ Two things IAM can't fence:
 
 - **A distribution's domain names and certificate.** No condition key covers them, so a role
   could put a name nobody holds yet on its own distribution. CloudFront refuses a name that
-  another distribution already holds. So production takes `spellcaster.foo` and `www` first
-  (M4b), and the `qa` environment stays locked until M4c (bring-up step 6).
+  another distribution already holds. So production took `spellcaster.foo` and `www` first
+  (M4b), and only then was the `qa` environment unlocked ([qa.md](qa.md), "Turning QA on").
 - **What a bucket policy says.** Each role writes its own bucket's policy, so it could grant
   another AWS account access. That isn't "public", so the account's public access block
   allows it. Accepted: only this repository's CI can use the roles.
@@ -161,8 +161,9 @@ gh api repos/matt-spellcaster/spellcaster-site-WIP/environments/qa/deployment-br
 ```
 
 The second command should print `0`: custom branch rules are on, and none exist, so no
-branch matches. M4c adds the `qa` role ARN and the branches that may deploy. The QA password
-stays in SSM (`/portfolio/qa/basic-auth-password`), not in GitHub.
+branch matches. [qa.md](qa.md) ("Turning QA on") later adds the `qa` role ARN and the
+branches that may deploy. The QA password stays in SSM (`/portfolio/qa/basic-auth-password`),
+not in GitHub.
 
 **7. Check the roles,** from the repository root: `cd ../..`, then
 `python3 -I scripts/ci/iam_policy_tests.py` (see above).
@@ -244,6 +245,12 @@ Then, depending on what the next run's log says:
 
 Then rerun the failed job from the run's page. Delete the `.terraform` folder when you're done.
 
+## QA (M4c)
+
+QA is production's twin at `qa.spellcaster.foo`, behind a password, built by the **QA up**
+workflow and taken away by **QA down** (and every night). [qa.md](qa.md) has how to turn it
+on, use it and check it. [teardown.md](teardown.md) has the order for taking everything down.
+
 ## Changing bootstrap later
 
 Always plan first, from `infra/bootstrap` with `backend.hcl` in place:
@@ -260,8 +267,7 @@ one fails. After any change to `ci_roles.tf`, run the IAM checks again.
 
 ## Known limits
 
-What the M4a review left open. `infra/envs/prod` (M4b) handles the first two; `infra/envs/qa`
-(M4c) must do the same.
+What the M4a review left open. Both `infra/envs` roots handle the first two.
 
 - **A CloudFront resource without an `Environment` tag can be claimed.** Either role may tag
   one as its own, then change or delete it. Everything bootstrap makes carries the tag. Keep
@@ -275,9 +281,9 @@ What the M4a review left open. `infra/envs/prod` (M4b) handles the first two; `i
 - **Checkov's dependencies wait 7 days, but aren't locked.** CI installs only releases at
   least a week old, but the exact set can change from day to day. A new `CHECKOV_VERSION`
   also has to be a week old, or the job fails.
-- **Production can read any CloudFront function** (`cloudfront:Get*`). If M4c checks the QA
-  password in a function, the function holds only a SHA-256 hash of it. So make the password
-  long and random (for example `openssl rand -base64 24`), so the hash can't be guessed back.
+- **Production can read any CloudFront function** (`cloudfront:Get*`), QA's included. QA's
+  function holds only a SHA-256 hash of the password's header, so the password is long and
+  random, and QA up refuses one under 24 characters ([qa.md](qa.md), "Changing the password").
 
 ## Cost
 
@@ -286,4 +292,5 @@ origin access control, header policies, email alerts and the budget are free at 
 
 Production adds cents for the bucket. CloudFront's always-free allowance covers 1 TB, 10
 million requests and 2 million function runs a month, and the first 10 alarms are free. The
-traffic alarms go off long before the site could use that allowance up.
+traffic alarms go off long before the site could use that allowance up. QA costs cents on the
+days it's up, and nothing once QA down has run.

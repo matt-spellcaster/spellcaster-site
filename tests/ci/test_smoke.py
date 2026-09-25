@@ -1,6 +1,8 @@
 """smoke: each check passes on a correct deployment and names what's wrong on a broken one."""
 
+import contextlib
 import hashlib
+import io
 import ssl
 import sys
 import tempfile
@@ -149,3 +151,72 @@ class Smoke(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+QA, QA_EDGE = "qa.spellcaster.foo", "d222222abcdef8.cloudfront.net"
+AUTH = "Basic cWE6c2VjcmV0"  # qa:secret
+
+
+class FakeQaEdge(FakeEdge):
+    """A correct QA deployment: FakeEdge behind a password, with noindex everywhere."""
+
+    def __init__(self):
+        super().__init__()
+        self.seen = []  # (scheme, whether the password was sent)
+        self.open = False  # a broken QA that forgot its password
+
+    def __call__(self, edge, host, path, scheme="https", headers=None):
+        assert edge == QA_EDGE
+        headers = dict(headers or {})
+        sent = headers.pop("Authorization", None)
+        self.seen.append((scheme, sent is not None))
+        robots = {"x-robots-tag": "noindex, nofollow"}
+        if scheme == "https" and sent != AUTH and not self.open:
+            return Response(401, {"www-authenticate": 'Basic realm="QA", charset="UTF-8"',
+                                  "strict-transport-security": HSTS, **robots}, b"")
+        r = super().__call__(EDGE, "spellcaster.foo" if host == QA else host, path, scheme, headers)
+        location = r.headers.get("location", "").replace("https://spellcaster.foo", f"https://{QA}")
+        return Response(r.status, {**r.headers, **robots, **({"location": location} if location else {})}, r.body)
+
+
+class SmokeQa(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        dist = Path(tmp.name)
+        for name, body in FILES.items():
+            (dist / name).parent.mkdir(parents=True, exist_ok=True)
+            (dist / name).write_bytes(body)
+        self.edge = FakeQaEdge()
+        self.site = Site(QA, QA_EDGE, [], {n: hashlib.sha256(b).hexdigest() for n, b in FILES.items()}, dist,
+                         noindex=True, auth=AUTH, fetch=self.edge, handshake=self.edge.handshake)
+
+    def failures(self):
+        return {row["check"]: row["problems"] for row in smoke.run_checks(self.site) if not row["ok"]}
+
+    def test_a_correct_qa_deployment_passes_every_check_including_the_password(self):
+        rows = smoke.run_checks(self.site)
+        self.assertEqual({r["check"]: r["problems"] for r in rows if not r["ok"]}, {})
+        self.assertEqual(rows[0]["check"], "no password, no site")
+
+    def test_the_password_goes_over_https_only(self):
+        smoke.run_checks(self.site)
+        self.assertIn(("https", True), self.edge.seen)
+        self.assertNotIn(("http", True), self.edge.seen)
+
+    def test_a_qa_site_that_forgot_its_password_fails(self):
+        self.edge.open = True
+        problems = self.failures()["no password, no site"]
+        self.assertIn("without a password: status 200, expected 401", problems)
+        self.assertIn("without a password: the home page came back", problems)
+        self.assertIn("with a wrong password: status 200, expected 401", problems)
+
+    def test_production_runs_no_password_check(self):
+        site = Site(HOST, EDGE, [WWW], {}, Path("."))
+        self.assertNotIn("no password, no site", [name for name, _ in smoke.CHECKS])
+        self.assertIsNone(site.auth)
+
+    def test_the_header_comes_only_from_the_environment(self):
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            smoke.main(["--host", QA, "--edge", QA_EDGE, "--dist", ".", "--manifest", "m.json",
+                        "--auth-header-env", "SMOKE_TEST_NO_SUCH_VARIABLE"])

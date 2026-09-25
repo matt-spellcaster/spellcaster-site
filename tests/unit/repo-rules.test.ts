@@ -70,6 +70,23 @@ describe('toolchain versions agree', () => {
     expect(process.version).toBe(`v${read('.node-version').trim()}`);
   });
 
+  it('every workflow pins the same tools as compliance.yml', () => {
+    const pins = (file: string) =>
+      Object.fromEntries(
+        [...read(file).matchAll(/^ {2}([A-Z_]+_(?:VERSION|SHA256)): '([^']+)'/gm)].map((m) => [
+          m[1],
+          m[2],
+        ]),
+      );
+    const compliance = pins('.github/workflows/compliance.yml');
+    for (const file of ['.github/workflows/qa-up.yml', '.github/workflows/qa-down.yml']) {
+      const own = pins(file);
+      expect(Object.keys(own).length, file).toBeGreaterThan(0);
+      for (const [name, value] of Object.entries(own))
+        expect(value, `${file} ${name}`).toBe(compliance[name]);
+    }
+  });
+
   it('every dependency is pinned exactly', () => {
     const all = JSON.parse(read('package.json')) as Record<string, Record<string, string>>;
     const loose = Object.entries({ ...all['dependencies'], ...all['devDependencies'] }).filter(
