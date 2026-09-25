@@ -66,11 +66,12 @@ target.
 ## Records for launch (M5)
 
 The apex and `www` point at the production distribution. Add them only after the launch
-pull request has merged and its Deploy production job is green. Find the distribution's
-name (read-only):
+pull request has merged and its Deploy production job is green (not skipped). Find the
+distribution's name (read-only):
 
 ```bash
-aws cloudfront list-distributions --profile portfolio-read --query "DistributionList.Items[?contains(Aliases.Items, 'spellcaster.foo')].DomainName" --output text
+aws sso login --profile portfolio-read
+aws cloudfront list-distributions --profile portfolio-read --query "DistributionList.Items[?Aliases.Items[?@=='spellcaster.foo']].DomainName" --output text
 ```
 
 In Cloudflare: **dash.cloudflare.com** → **spellcaster.foo** → **DNS** → **Records** →
@@ -81,29 +82,40 @@ In Cloudflare: **dash.cloudflare.com** → **spellcaster.foo** → **DNS** → *
 | Type | CNAME | CNAME |
 | Name | `@` | `www` |
 | Target | the distribution's name (`d….cloudfront.net`) | the same |
-| Proxy status | DNS only | DNS only |
+| Proxy status | DNS only (Cloudflare starts it on Proxied: switch it off) | DNS only |
 | TTL | Auto | Auto |
 
 Cloudflare can't put a real CNAME at the apex next to the mail records, so it answers the
 `@` record with CloudFront's addresses instead (CNAME flattening). That's expected, and it
 leaves MX and the TXT records alone. `www` redirects to `spellcaster.foo` at CloudFront.
 
-**Checking** (a few minutes after saving):
+**Checking.** Ask Cloudflare's own name server first, which answers at once:
 
 ```bash
-dig +short A spellcaster.foo
-dig +short AAAA spellcaster.foo
-curl -sI https://spellcaster.foo/ | grep -iE '^(HTTP|strict-transport)'
-curl -sI https://www.spellcaster.foo/ | grep -iE '^(HTTP|location)'
-curl -sI http://spellcaster.foo/ | grep -iE '^(HTTP|location)'
+dig +short A spellcaster.foo @cortney.ns.cloudflare.com
+dig +short AAAA spellcaster.foo @cortney.ns.cloudflare.com
+```
+
+Expect CloudFront addresses from both. Addresses starting `104.21`, `172.67` or `2606:4700`
+are Cloudflare's own: the record is still Proxied. Your own resolver may remember "no such
+record" for up to 30 minutes (the zone's negative cache time), so if the next commands fail,
+wait and try again before undoing anything:
+
+```bash
+curl -sSI https://spellcaster.foo/ | grep -iE '^(HTTP|strict-transport|server|via)'
+curl -sSI https://www.spellcaster.foo/ | grep -iE '^(HTTP|location)'
+curl -sSI http://spellcaster.foo/ | grep -iE '^(HTTP|location)'
 dig +short MX spellcaster.foo
 ```
 
-Expect CloudFront addresses from both `dig`s, `HTTP/2 200` with a `strict-transport-security`
-header, a 301 from `www` and a 301 from `http`, each to `https://spellcaster.foo/`, and
-`0 mailserver.purelymail.com.` unchanged. Then send yourself a test email at
-`hello@spellcaster.foo`.
+Expect `HTTP/2 200`, `server: AmazonS3`, a `via` line ending in `(CloudFront)` and a
+`strict-transport-security` header. `server: cloudflare` means a record is still Proxied. Then a
+301 from `www` and a 301 from `http`, each to `https://spellcaster.foo/`, and
+`0 mailserver.purelymail.com.` unchanged. Last, send a test email to `hello@spellcaster.foo`
+from an outside address (Gmail, say), so it really goes through MX.
 
-**Undoing the launch.** Delete the two records, and the site is offline again: its
-`cloudfront.net` name only redirects to `spellcaster.foo`. A bad page is undone with a revert
-pull request instead ([aws.md](aws.md)).
+**Undoing the launch.** Delete the two records. Visitors stop reaching the site once their
+resolvers forget the records (minutes, up to the TTL). The distribution itself keeps
+answering anyone who connects to it directly and asks for `spellcaster.foo`, as the smoke
+test does, so removing the records hides the site but doesn't withdraw anything. To take a
+page down, revert its pull request ([aws.md](aws.md)).
