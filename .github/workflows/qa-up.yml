@@ -14,8 +14,6 @@ env:
   # The same pins as compliance.yml (a unit test checks they agree).
   TERRAFORM_VERSION: '1.16.3'
   TERRAFORM_SHA256: '093b6ae9a2228af5029c41606bc96eb583553528aad1bfe7e0b4d62fc91e25d8' # linux_amd64 zip
-  TFLINT_VERSION: '0.64.0'
-  TFLINT_SHA256: 'cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537' # linux_amd64 zip
 
 jobs:
   find:
@@ -101,9 +99,14 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/results"
           terraform init -lockfile=readonly -backend-config="bucket=${TF_STATE_BUCKET}" -no-color \
             > "$RUNNER_TEMP/init.log" 2>&1 || { sed -n '/Error/,$p' "$RUNNER_TEMP/init.log"; exit 1; }
-          # No other distribution may hold qa.spellcaster.foo (a stack whose state was lost).
+          # Nothing of QA's may exist outside its state (a stack whose state was lost), or apply
+          # fails halfway. A state that was never written is "No state file was found!".
+          terraform state list > "$RUNNER_TEMP/state.txt" 2> "$RUNNER_TEMP/state.err" \
+            || grep -q 'No state file was found' "$RUNNER_TEMP/state.err" \
+            || { cat "$RUNNER_TEMP/state.err"; exit 1; }
           known=$(terraform output -raw distribution_id 2> /dev/null || true)
-          python3 "$GITHUB_WORKSPACE/scripts/ci/leftovers.py" --preflight --known "$known"
+          python3 "$GITHUB_WORKSPACE/scripts/ci/leftovers.py" --preflight --known "$known" \
+            --state-list "$RUNNER_TEMP/state.txt"
           terraform plan -out=tfplan -no-color \
             > "$RUNNER_TEMP/plan.log" 2>&1 || { sed -n '/Error/,$p' "$RUNNER_TEMP/plan.log"; exit 1; }
           grep -E '^(Plan:|No changes|Changes to Outputs)' "$RUNNER_TEMP/plan.log" | tee "$GITHUB_WORKSPACE/results/plan.txt"

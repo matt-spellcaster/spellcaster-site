@@ -71,8 +71,9 @@ It has three jobs:
 1. **Find the tested build**: the newest Compliance run of the branch's latest commit whose
    Build and E2E passed. A pull request's run builds the branch merged with `main`, so QA
    shows what `main` would look like after the merge. If there isn't one, it stops and says so.
-2. **Deploy QA** (as `portfolio-qa`): checks no other distribution holds `qa.spellcaster.foo`,
-   plans and applies `infra/envs/qa`, publishes the build, and runs the smoke test with the
+2. **Deploy QA** (as `portfolio-qa`): checks nothing of QA's exists that its Terraform state
+   doesn't know about (a distribution holding `qa.spellcaster.foo`, the bucket, the function
+   or the records), plans and applies `infra/envs/qa`, publishes the build, and runs the smoke test with the
    password. The smoke test also checks that a request without the password, or with a wrong
    one, gets 401 and noindex. The first run takes 5 to 15 minutes while CloudFront creates
    the distribution; later runs take a minute or two.

@@ -15,8 +15,6 @@ env:
   # The same pins as compliance.yml (a unit test checks they agree).
   TERRAFORM_VERSION: '1.16.3'
   TERRAFORM_SHA256: '093b6ae9a2228af5029c41606bc96eb583553528aad1bfe7e0b4d62fc91e25d8' # linux_amd64 zip
-  TFLINT_VERSION: '0.64.0'
-  TFLINT_SHA256: 'cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537' # linux_amd64 zip
 
 jobs:
   down:

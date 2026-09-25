@@ -468,6 +468,8 @@ jobs:
           allowed-account-ids: ${{ secrets.AWS_ACCOUNT_ID }}
           mask-aws-account-id: true
       - name: Install Terraform (checksum verified)
+        env:
+          TFLINT_VERSION: '' # this job only applies; the Terraform job lints
         run: scripts/ci/install_terraform.sh
       - name: Plan
         id: plan
