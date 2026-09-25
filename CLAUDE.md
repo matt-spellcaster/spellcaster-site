@@ -33,7 +33,8 @@ public: it has to read well, and nothing private goes in (rule 7), whatever the 
 5. **Links.** Every internal `href` ends in `/` (for example `/projects/okta-access-review-aws/`).
 6. **Draft copy.** Text Matthew hasn't approved yet starts with `DRAFT:` (on the case study,
    at the start of each section), and facts only he can supply are `[placeholders]`.
-   `npm run launch-check` fails while any are left, or while the LinkedIn link is missing.
+   The dist tests fail while any are left, or while the LinkedIn link is missing, since every
+   merge to `main` goes live: draft copy stays on its branch.
    Copy is written in Matthew's voice: plain, short sentences, no dashes, and no claim the
    linked repositories don't back up.
 7. **Nothing private in git.** No AWS account IDs, `backend.hcl`, `*.tfvars`, Terraform
@@ -54,7 +55,6 @@ public: it has to read well, and nothing private goes in (rule 7), whatever the 
 | `npm run dev` | Dev server at http://localhost:4321/ (`DEV_LAN=1` for a phone on the same Wi-Fi) |
 | `npm run verify` | Everything CI's Build and E2E jobs run: lint, `astro check`, unit tests, build, dist tests, Playwright |
 | `npm run format` | Prettier |
-| `npm run launch-check` | The dist tests plus the launch gate (after `npm run build`) |
 | `npm run lighthouse` | Lighthouse (mobile) on every built page; reports in `test-results/lighthouse/` |
 | `node scripts/og-images.ts` | Remakes the committed social images and favicons after a design change |
 

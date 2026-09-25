@@ -63,8 +63,47 @@ Expect four `awsdns` servers, `"v=DMARC1; p=reject; …"`, `0 .` and `0 issue "a
 For each validation record, `dig +short CNAME <name>.spellcaster.foo` should print its
 target.
 
-## Records for launch (M5, later)
+## Records for launch (M5)
 
-The apex and `www` point at the production distribution. They're added at launch, once
-production is live on its `cloudfront.net` name. [aws.md](aws.md) ("Production deploys")
-shows how to find that name.
+The apex and `www` point at the production distribution. Add them only after the launch
+pull request has merged and its Deploy production job is green. Find the distribution's
+name (read-only):
+
+```bash
+aws cloudfront list-distributions --profile portfolio-read --query "DistributionList.Items[?contains(Aliases.Items, 'spellcaster.foo')].DomainName" --output text
+```
+
+In Cloudflare: **dash.cloudflare.com** → **spellcaster.foo** → **DNS** → **Records** →
+**Add record**, twice:
+
+| Field | The apex | www |
+|---|---|---|
+| Type | CNAME | CNAME |
+| Name | `@` | `www` |
+| Target | the distribution's name (`d….cloudfront.net`) | the same |
+| Proxy status | DNS only | DNS only |
+| TTL | Auto | Auto |
+
+Cloudflare can't put a real CNAME at the apex next to the mail records, so it answers the
+`@` record with CloudFront's addresses instead (CNAME flattening). That's expected, and it
+leaves MX and the TXT records alone. `www` redirects to `spellcaster.foo` at CloudFront.
+
+**Checking** (a few minutes after saving):
+
+```bash
+dig +short A spellcaster.foo
+dig +short AAAA spellcaster.foo
+curl -sI https://spellcaster.foo/ | grep -iE '^(HTTP|strict-transport)'
+curl -sI https://www.spellcaster.foo/ | grep -iE '^(HTTP|location)'
+curl -sI http://spellcaster.foo/ | grep -iE '^(HTTP|location)'
+dig +short MX spellcaster.foo
+```
+
+Expect CloudFront addresses from both `dig`s, `HTTP/2 200` with a `strict-transport-security`
+header, a 301 from `www` and a 301 from `http`, each to `https://spellcaster.foo/`, and
+`0 mailserver.purelymail.com.` unchanged. Then send yourself a test email at
+`hello@spellcaster.foo`.
+
+**Undoing the launch.** Delete the two records, and the site is offline again: its
+`cloudfront.net` name only redirects to `spellcaster.foo`. A bad page is undone with a revert
+pull request instead ([aws.md](aws.md)).

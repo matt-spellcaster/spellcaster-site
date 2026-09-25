@@ -198,9 +198,9 @@ describe.each(['index.html', 'projects/okta-access-review-aws/index.html'])('JS 
   });
 });
 
-// `npm run launch-check`: the gate before M5's launch PR. The job-title line is optional and
-// never blocks a launch.
-describe.runIf(process.env['LAUNCH_CHECK'] === '1')('launch check', () => {
+// The launch gate. Every merge to main goes live, so unapproved copy can't pass the Build job.
+// The job-title line is optional and never blocks it.
+describe('launch check', () => {
   it('no DRAFT: markers are left', () => {
     const drafts = pages.filter((p) => readFileSync(join(DIST, p), 'utf8').includes('DRAFT:'));
     expect(drafts).toEqual([]);
