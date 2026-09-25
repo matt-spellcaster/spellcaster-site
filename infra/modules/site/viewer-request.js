@@ -9,7 +9,7 @@ var HOST = '${host}';
 var AUTH_SHA256 = '${auth_sha256}';
 // The same as bootstrap's header policies, which don't reach a function's own responses.
 var HSTS = 'max-age=31536000; includeSubDomains; preload';
-var NOINDEX = ${noindex};
+var NOINDEX = '${noindex}' === 'true'; // quoted, so the file is valid JavaScript before rendering too
 
 function handler(event) {
   var request = event.request;
