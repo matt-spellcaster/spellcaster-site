@@ -91,6 +91,14 @@ def run(aws, *argv):
     return code, out.getvalue(), err.getvalue()
 
 
+def preflight(aws, state="", known=""):
+    """Runs --preflight with state as terraform state list's output."""
+    with tempfile.TemporaryDirectory() as tmp:
+        state_list = Path(tmp) / "state.txt"
+        state_list.write_text(state)
+        return run(aws, "--preflight", "--known", known, "--state-list", str(state_list))
+
+
 class Leftovers(unittest.TestCase):
     def test_a_clean_qa_teardown_passes_with_production_up(self):
         self.assertEqual(run(FakeAws(), "--scope", "qa"), (0, "0 left behind\n", ""))
@@ -134,45 +142,102 @@ class Leftovers(unittest.TestCase):
     def test_preflight_allows_only_the_distribution_in_state(self):
         aws = FakeAws()
         aws.dists = [PROD_DIST, ["E2QA", "arn:aws:cloudfront::x:distribution/E2QA", ["qa.spellcaster.foo"]]]
-        self.assertEqual(run(aws, "--preflight", "--known", "E2QA")[0], 0)
-        code, out, err = run(aws, "--preflight", "--known", "")
+        self.assertEqual(preflight(aws, known="E2QA")[0], 0)
+        code, out, err = preflight(aws)
         self.assertEqual(code, 1)
         self.assertIn("left: distribution E2QA holds qa.spellcaster.foo", out)
-        self.assertIn("QA's state doesn't hold 1 of QA's things", err)
-        self.assertEqual(run(FakeAws(), "--preflight")[0], 0)
+        self.assertIn("QA up would fail on what QA's state doesn't hold (distribution E2QA holds qa.spellcaster.foo)",
+                      err)
+        self.assertEqual(preflight(FakeAws())[0], 0)
 
     def test_preflight_refuses_what_a_lost_state_left(self):
         aws = FakeAws()
         aws.functions += ["portfolio-qa-viewer-request"]
         aws.qa_bucket = True
         aws.records += [[QA, "A"], [QA, "AAAA"], [f"www.{QA}", "CNAME"]]  # the CNAME doesn't block QA up
-        with tempfile.TemporaryDirectory() as tmp:
-            state = Path(tmp) / "state.txt"
-            state.write_text("")  # QA's state is empty
-            code, out, err = run(aws, "--preflight", "--known", "", "--state-list", str(state))
-            self.assertEqual(code, 1)
-            self.assertEqual(out.splitlines(), [
-                "left: the QA bucket",
-                "left: function portfolio-qa-viewer-request",
-                f"left: record A {QA}",
-                f"left: record AAAA {QA}",
-                "4 in QA up's way",
-            ])
-            self.assertIn("docs/qa.md", err)
-            # QA is up: its state holds all of them, so none is in the way.
-            state.write_text(STATE_LIST)
-            self.assertEqual(run(aws, "--preflight", "--known", "", "--state-list", str(state))[0], 0)
+        code, out, err = preflight(aws)  # QA's state is empty
+        self.assertEqual(code, 1)
+        self.assertEqual(out.splitlines(), [
+            "left: the QA bucket",
+            "left: function portfolio-qa-viewer-request",
+            f"left: record A {QA}",
+            f"left: record AAAA {QA}",
+            "4 in QA up's way",
+        ])
+        self.assertIn("docs/qa.md", err)
+        self.assertNotIn(ACCOUNT, out + err)
+        # QA is up: its state holds all of them, so none is in the way.
+        self.assertEqual(preflight(aws, STATE_LIST)[0], 0)
+
+    def test_preflight_needs_the_state_list(self):
+        with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit) as e:
+            leftovers.main(["--preflight", "--known", ""], FakeAws())
+        self.assertEqual(e.exception.code, 2)
+        self.assertIn("--preflight needs --state-list", err.getvalue())
+
+    def test_preflight_without_the_qa_zone_cant_be_checked(self):
+        aws = FakeAws()
+        aws.zone = False
+        code, out, err = preflight(aws)
+        self.assertEqual(code, 2)
+        self.assertIn("Couldn't check", err)
+        self.assertNotIn(ACCOUNT, out + err)
 
     def test_a_missing_state_list_cant_be_checked(self):
         code, _, err = run(FakeAws(), "--preflight", "--state-list", "/nonexistent/state.txt")
         self.assertEqual(code, 2)
         self.assertIn("Couldn't check", err)
 
-    def test_state_types_reads_terraform_state_list(self):
-        self.assertEqual(leftovers.state_types(STATE_LIST), {
-            "aws_route53_record", "aws_cloudfront_distribution", "aws_cloudfront_function", "aws_s3_bucket",
-            "aws_s3_bucket_policy", "aws_s3_bucket_versioning"})
-        self.assertEqual(leftovers.state_types(""), set())
+    def test_preflight_checks_each_thing_the_state_lacks(self):
+        # A QA up cut off halfway: its state holds the bucket and the A record, not the rest.
+        aws = FakeAws()
+        aws.qa_bucket = True
+        aws.functions += ["portfolio-qa-viewer-request"]
+        aws.records += [[QA, "A"], [QA, "AAAA"]]
+        # Windows line ends and stray spaces are tolerated; an address that only starts the same isn't a match.
+        state = (' module.site.aws_s3_bucket.site \r\naws_route53_record.site["A"]\r\n'
+                 "module.site.aws_cloudfront_function.viewer_request_old\n")
+        code, out, _ = preflight(aws, state)
+        self.assertEqual(code, 1)
+        self.assertEqual(out.splitlines(), [
+            "left: function portfolio-qa-viewer-request",
+            f"left: record AAAA {QA}",
+            "2 in QA up's way",
+        ])
+
+    def test_preflight_after_a_half_failed_qa_down_trusts_the_state(self):
+        # Destroy removes the outputs first, so there's no known ID, but the state still holds
+        # the distribution, and it still holds the name.
+        aws = FakeAws()
+        aws.dists = [PROD_DIST, ["E2QA", "arn:aws:cloudfront::x:distribution/E2QA", ["qa.spellcaster.foo"]]]
+        self.assertEqual(preflight(aws, "module.site.aws_cloudfront_distribution.site\n")[0], 0)
+        # With the outputs there, the known ID decides, even when the state holds a distribution.
+        code, out, _ = preflight(aws, "module.site.aws_cloudfront_distribution.site\n", known="E9NEW")
+        self.assertEqual(code, 1)
+        self.assertIn("left: distribution E2QA holds qa.spellcaster.foo", out)
+
+    def test_preflight_never_names_the_account(self):
+        aws = FakeAws()
+        aws.functions += [f"portfolio-qa-{ACCOUNT}"]
+        code, out, err = preflight(aws)
+        self.assertEqual(code, 1)
+        self.assertIn("function portfolio-qa-<account>", err)
+        self.assertNotIn(ACCOUNT, out + err)
+
+    def test_the_state_addresses_match_terraform(self):
+        infra = Path(__file__).resolve().parents[2] / "infra"
+        qa = (infra / "envs" / "qa" / "main.tf").read_text()
+        site = "".join(f.read_text() for f in sorted((infra / "modules" / "site").glob("*.tf")))
+        self.assertIn('module "site" {', qa)
+        self.assertIn('resource "aws_route53_record" "site" {\n  for_each = toset(["A", "AAAA"])', qa)
+        self.assertEqual(leftovers.QA_RECORD, 'aws_route53_record.site["{}"]')
+        for address in (leftovers.QA_BUCKET, leftovers.QA_FUNCTION, leftovers.QA_DISTRIBUTION):
+            module, name, rtype, resource = address.split(".")
+            self.assertEqual((module, name), ("module", "site"))
+            self.assertIn(f'resource "{rtype}" "{resource}" {{', site)
+        for address in (leftovers.QA_BUCKET, leftovers.QA_FUNCTION, leftovers.QA_DISTRIBUTION,
+                        leftovers.QA_RECORD.format("A"), leftovers.QA_RECORD.format("AAAA")):
+            self.assertIn(address, STATE_LIST.splitlines())
 
     def test_the_bucket_name_matches_terraform(self):
         bucket_tf = (Path(__file__).resolve().parents[2] / "infra" / "modules" / "site" / "bucket.tf").read_text()

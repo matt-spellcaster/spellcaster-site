@@ -9,9 +9,9 @@ bucket, and any record in the qa zone besides the fixed ones bootstrap made.
 --scope all: anything of the site's at all. Run it on your Mac with read-only access
 (AWS_PROFILE=portfolio-read), once every root is destroyed.
 --preflight: fails if something QA's state doesn't know about is in QA up's way: a distribution
-other than --known holding qa.<domain>, or QA's bucket, function or records when --state-list
-(the output of terraform state list) has none. Each would fail QA up, but only after it had
-built half a stack.
+other than --known holding qa.<domain>, or QA's bucket, function, A or AAAA record when
+--state-list (the output of terraform state list) doesn't hold it. Each would fail QA up, but
+only after it had built half a stack.
 
 Exits 0 when nothing is left, 1 when something is (each one listed), 2 when it couldn't
 check. Nothing it prints names the account. Runs the AWS CLI. Standard library only.
@@ -37,6 +37,12 @@ FIXED_RECORDS = {
     (f"{QA_DOMAIN}.", "SOA"), (f"{QA_DOMAIN}.", "NS"), (f"{QA_DOMAIN}.", "TXT"), (f"{QA_DOMAIN}.", "MX"),
     (f"{QA_DOMAIN}.", "CAA"), (f"_dmarc.{QA_DOMAIN}.", "TXT"),
 }
+# QA's things with a name of their own, as terraform state list shows them (infra/envs/qa and
+# infra/modules/site; a test checks they agree).
+QA_BUCKET = "module.site.aws_s3_bucket.site"
+QA_FUNCTION = "module.site.aws_cloudfront_function.viewer_request"
+QA_DISTRIBUTION = "module.site.aws_cloudfront_distribution.site"
+QA_RECORD = 'aws_route53_record.site["{}"]'
 ACCOUNT_ID = re.compile(r"(?<![0-9])[0-9]{12}(?![0-9])")
 VALIDATION_RECORD = re.compile(rf"_[0-9a-f]{{32}}\.{re.escape(QA_DOMAIN)}\.")
 
@@ -82,11 +88,14 @@ def qa_zone_id(aws: Aws) -> str | None:
     return next((zid for zid, name in zones if name == f"{QA_DOMAIN}."), None)
 
 
-def extra_records(aws: Aws, zone_id: str) -> list[str]:
-    records = aws("route53", "list-resource-record-sets", "--hosted-zone-id", zone_id,
+def qa_record_sets(aws: Aws) -> list[tuple[str, str]]:
+    """Every record in the qa zone, as (name, type)."""
+    zone = qa_zone_id(aws)
+    if zone is None:
+        raise RuntimeError(f"the {QA_DOMAIN} zone is missing: bootstrap should hold it")
+    records = aws("route53", "list-resource-record-sets", "--hosted-zone-id", zone,
                   "--query", "ResourceRecordSets[].[Name,Type]") or []
-    return [f"{rtype} {name}" for name, rtype in records
-            if (name, rtype) not in FIXED_RECORDS and not (rtype == "CNAME" and VALIDATION_RECORD.fullmatch(name))]
+    return [(name, rtype) for name, rtype in records]
 
 
 def qa_functions(aws: Aws) -> list[str]:
@@ -99,10 +108,9 @@ def qa_bucket(aws: Aws) -> list[str]:
 
 
 def qa_records(aws: Aws) -> list[str]:
-    zone = qa_zone_id(aws)
-    if zone is None:
-        raise RuntimeError(f"the {QA_DOMAIN} zone is missing: bootstrap should hold it")
-    return [f"record {r}" for r in extra_records(aws, zone)]
+    """Records in the qa zone besides the ones bootstrap keeps there."""
+    return [f"record {rtype} {name}" for name, rtype in qa_record_sets(aws)
+            if (name, rtype) not in FIXED_RECORDS and not (rtype == "CNAME" and VALIDATION_RECORD.fullmatch(name))]
 
 
 def check_qa(aws: Aws) -> list[str]:
@@ -148,26 +156,24 @@ def check_all(aws: Aws) -> list[str]:
     return left
 
 
-def state_types(state_list: str) -> set[str]:
-    """The managed resource types in terraform state list's output, like aws_s3_bucket."""
-    types = set()
-    for address in state_list.split():
-        parts = re.sub(r"\[[^]]*\]", "", address).split(".")
-        if len(parts) >= 2 and not (len(parts) >= 3 and parts[-3] == "data"):
-            types.add(parts[-2])
-    return types
-
-
 def preflight(aws: Aws, known: str | None, in_state: set[str]) -> list[str]:
-    """What QA up would collide with: anything of QA's that its state doesn't hold."""
-    left = [f"distribution {d['id']} holds {QA_DOMAIN}" for d in distributions(aws)
-            if QA_DOMAIN in d["aliases"] and d["id"] != known]
-    if "aws_s3_bucket" not in in_state:
+    """What QA up would collide with: anything of QA's that its state doesn't hold.
+
+    in_state holds the addresses terraform state list printed, one per line.
+    """
+    left = []
+    # A QA down that failed halfway removed the outputs, so known is empty, but the state still
+    # holds the distribution. Only one distribution can hold a name, so that one is QA's own.
+    if known or QA_DISTRIBUTION not in in_state:
+        left += [f"distribution {d['id']} holds {QA_DOMAIN}" for d in distributions(aws)
+                 if QA_DOMAIN in d["aliases"] and d["id"] != known]
+    if QA_BUCKET not in in_state:
         left += qa_bucket(aws)
-    if "aws_cloudfront_function" not in in_state:
+    if QA_FUNCTION not in in_state:
         left += qa_functions(aws)
-    if "aws_route53_record" not in in_state:
-        left += [r for r in qa_records(aws) if r in (f"record A {QA_DOMAIN}.", f"record AAAA {QA_DOMAIN}.")]
+    untracked = {(f"{QA_DOMAIN}.", rtype) for rtype in ("A", "AAAA") if QA_RECORD.format(rtype) not in in_state}
+    if untracked:
+        left += [f"record {rtype} {name}" for name, rtype in qa_record_sets(aws) if (name, rtype) in untracked]
     return left
 
 
@@ -183,12 +189,14 @@ def main(argv: list[str] | None = None, aws: Aws = aws_cli) -> int:
     mode.add_argument("--preflight", action="store_true")
     p.add_argument("--known", help="with --preflight: the distribution in QA's state, which may hold the name")
     p.add_argument("--state-list", type=Path,
-                   help="with --preflight: a file holding terraform state list's output (empty when QA is down)")
+                   help="needed with --preflight: a file holding terraform state list's output (empty when QA is down)")
     args = p.parse_args(argv)
+    if args.preflight and args.state_list is None:
+        p.error("--preflight needs --state-list: without it, QA's own things look like leftovers")
 
     try:
         if args.preflight:
-            in_state = state_types(args.state_list.read_text()) if args.state_list else set()
+            in_state = {line.strip() for line in args.state_list.read_text().splitlines()} - {""}
             left = preflight(aws, args.known or None, in_state)
         elif args.scope == "qa":
             left = check_qa(aws)
@@ -200,8 +208,8 @@ def main(argv: list[str] | None = None, aws: Aws = aws_cli) -> int:
     for item in left:
         print(masked(f"left: {item}"))
     if args.preflight and left:
-        print(f"::error::QA's state doesn't hold {len(left)} of QA's things, and QA up would fail on them. "
-              "Run QA down, then docs/qa.md (\"If QA down leaves something\").", file=sys.stderr)
+        print(masked(f"::error::QA up would fail on what QA's state doesn't hold ({', '.join(left)}). "
+                     "Run QA down, then docs/qa.md (\"If QA down leaves something\")."), file=sys.stderr)
     elif left:
         doc = "docs/qa.md (\"If QA down leaves something\")" if args.scope == "qa" else "docs/teardown.md"
         print(f"::error::{len(left)} left behind. {doc} says what to do.", file=sys.stderr)
