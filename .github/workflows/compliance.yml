@@ -359,9 +359,44 @@ jobs:
           path: results/
           retention-days: 7
 
+  demo-data:
+    name: Demo data
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Check the demo is the tool's own output
+        run: |
+          mkdir -p results
+          set +e
+          # Clones the public tool repository at the commit the demo data names, runs its
+          # export with its own lockfile, and compares the result byte for byte.
+          python3 -I scripts/ci/demo_data.py check 2>&1 | tee results/demo-data.txt
+          code=${PIPESTATUS[0]}
+          summary=$(grep -E '^[0-9]+ files match' results/demo-data.txt)
+          python3 scripts/ci/record.py demo-data "$code" --title "Demo data" \
+            --control "SOC 2 CC8.1" --control "ISO 27001 A.8.32" \
+            --tool "scripts/ci/demo_data.py, uv ${UV_VERSION}" \
+            --detail "${summary:-the check did not complete}"
+          exit "$code"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: result-demo-data
+          path: results/
+          retention-days: 7
+
   evidence:
     name: Evidence
-    needs: [build, e2e, security, terraform]
+    needs: [build, e2e, security, terraform, demo-data]
     if: ${{ !cancelled() }} # also when a check failed, so the bundle records the failure
     runs-on: ubuntu-24.04
     permissions:
@@ -383,7 +418,7 @@ jobs:
           python3 scripts/ci/build_evidence.py results evidence \
             --expect dependencies --expect build --expect e2e \
             --expect secret-scan --expect pdf-check --expect workflow-lint --expect branch-rules \
-            --expect terraform
+            --expect terraform --expect demo-data
           echo "code=$?" >> "$GITHUB_ENV"
           tar -czf "evidence-${GITHUB_SHA}.tar.gz" evidence
           # Sign evidence signs this digest, not whatever artifact carries the bundle's name.
@@ -416,7 +451,7 @@ jobs:
 
   deploy-production:
     name: Deploy production
-    needs: [build, e2e, security, terraform, evidence, sign]
+    needs: [build, e2e, security, terraform, demo-data, evidence, sign]
     # Main only, once AWS is set up, behind the DEPLOY_ENABLED variable. The protected
     # "production" environment's reviewer approves the run where the plan offers one (not on
     # a private repository below Enterprise: check_branch_rules.py records the waiver).
