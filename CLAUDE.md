@@ -36,8 +36,8 @@ public: it has to read well, and nothing private goes in (rule 7), whatever the 
    The dist tests fail while any are left, or while the LinkedIn link is missing, since every
    merge to `main` goes live: draft copy stays on its branch, and can't go to QA (read it on
    the dev server).
-   Copy is written in Matthew's voice: plain, short sentences, no dashes, and no claim the
-   linked repositories don't back up.
+   Copy is written in Matthew's voice: plain, short sentences, no dashes (a dist test fails on
+   an em or en dash), and no claim the linked repositories don't back up.
 7. **Nothing private in git.** No AWS account IDs, `backend.hcl`, `*.tfvars`, Terraform
    state, phone number or home address. CI logs would be public too: Terraform prints only its
    plan summary, and role ARNs and the state bucket live in GitHub secrets. The

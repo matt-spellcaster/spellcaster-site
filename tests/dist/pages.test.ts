@@ -201,30 +201,37 @@ describe.each(['index.html', 'projects/okta-access-review-aws/index.html'])('JS 
 // The launch gate. Every merge to main goes live, so unapproved copy can't pass the Build job.
 // The job-title line is optional and never blocks it.
 describe('launch check', () => {
+  // Any text a person or a crawler reads: the page text, alt and title text, meta content
+  // (descriptions, OG alt text) and the JSON-LD's strings. Code blocks, styles and class names
+  // are left out, since brackets and dashes are normal there.
+  const strings = (value: unknown): string[] =>
+    typeof value === 'string' ? [value] : Object.values(value ?? {}).flatMap(strings);
+  const copy = (html: string) => [
+    html.replace(/<(script|style|pre)\b[\s\S]*?<\/\1>/g, ' ').replace(/<[^>]+>/g, ' '),
+    ...[...html.matchAll(/\s(?:alt|title|aria-label|content)="([^"]*)"/g)].map((m) => m[1] ?? ''),
+    ...[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].flatMap(
+      (m) => strings(JSON.parse(m[1] ?? 'null')),
+    ),
+  ];
+  const found = (pattern: RegExp) =>
+    pages.flatMap((p) =>
+      copy(readFileSync(join(DIST, p), 'utf8')).flatMap((text) =>
+        [...text.matchAll(pattern)].map((m) => `${p}: ${m[0].trim()}`),
+      ),
+    );
+
   it('no DRAFT: markers are left', () => {
     const drafts = pages.filter((p) => readFileSync(join(DIST, p), 'utf8').includes('DRAFT:'));
     expect(drafts).toEqual([]);
   });
 
   it('no [placeholders] are left in the copy', () => {
-    // Any bracketed text a person or a crawler reads: the page text, alt and title text,
-    // meta content (descriptions, OG alt text) and the JSON-LD's strings. Code blocks, styles
-    // and class names are left out, since brackets are normal there.
-    const strings = (value: unknown): string[] =>
-      typeof value === 'string' ? [value] : Object.values(value ?? {}).flatMap(strings);
-    const copy = (html: string) => [
-      html.replace(/<(script|style|pre)\b[\s\S]*?<\/\1>/g, ' ').replace(/<[^>]+>/g, ' '),
-      ...[...html.matchAll(/\s(?:alt|title|aria-label|content)="([^"]*)"/g)].map((m) => m[1] ?? ''),
-      ...[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].flatMap(
-        (m) => strings(JSON.parse(m[1] ?? 'null')),
-      ),
-    ];
-    const left = pages.flatMap((p) =>
-      copy(readFileSync(join(DIST, p), 'utf8')).flatMap((text) =>
-        [...text.matchAll(/\[[^\]\n]{1,80}\]/g)].map((m) => `${p}: ${m[0]}`),
-      ),
-    );
-    expect(left).toEqual([]);
+    expect(found(/\[[^\]\n]{1,80}\]/g)).toEqual([]);
+  });
+
+  it('no em or en dashes in the copy (CLAUDE.md rule 6)', () => {
+    // Hyphens (SHA-256, create-only) are fine. The match keeps a little text either side.
+    expect(found(/.{0,30}(?:[\u2013\u2014]|&[mn]dash;|&#821[12];|&#x201[34];).{0,30}/gi)).toEqual([]);
   });
 
   it('the home page links to LinkedIn', () => {
