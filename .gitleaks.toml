@@ -1,0 +1,15 @@
+# gitleaks' default rules, plus one exception. The demo data (the review tool's own export,
+# checked byte for byte by CI's Demo data job) names each review item by a 16-character hex
+# key, and the generic-api-key rule reads the odd one as a secret. Only a value of exactly
+# that shape, in exactly those files, is set aside; every other rule still reads them.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Review item keys in the review tool's demo export"
+condition = "AND"
+paths = ['''(^|/)(src/data/demo|tests/fixtures/demo)/[a-z-]+(\.golden)?\.json$''']
+regexes = ['''^[0-9a-f]{16}$''']
