@@ -75,19 +75,23 @@ export function itemBlocks(
   item: Item,
   final: Final | undefined,
   max: number,
+  open = true,
 ): Block[] {
-  const card = section(item.render.card, `i:${item.key}`);
+  const blocks = [section(item.render.card, `i:${item.key}`)];
   const ack = ACKNOWLEDGE_ONLY.includes(item.kind);
   if (final) {
     const why = final.reason ? ` · _${esc(final.reason)}_` : '';
     const mark = final.decision === KEEP ? ':white_check_mark:' : ':no_entry:';
     const label = ack ? 'Acknowledged' : LABEL[final.decision];
-    return [card, context(clip(`${mark} *${label}* by <@${final.decided_by}>${why}`, max))];
+    blocks.push(context(clip(`${mark} *${label}* by <@${final.decided_by}>${why}`, max)));
+    // Nothing to change: acknowledging is the only choice, or it is signed off.
+    if (ack || !open) return blocks;
   }
+  // A decided item keeps its buttons: until sign-off the CISO can change their mind.
   const value = compact({ r: run, k: item.key, c: item.render.chunk });
   if (ack) {
     return [
-      card,
+      ...blocks,
       {
         type: 'actions',
         block_id: `a:${item.key}`,
@@ -112,7 +116,7 @@ export function itemBlocks(
       ? { style: decision === REVOKE ? ('danger' as const) : ('primary' as const) }
       : {}),
   }));
-  return [card, { type: 'actions', block_id: `a:${item.key}`, elements: buttons }];
+  return [...blocks, { type: 'actions', block_id: `a:${item.key}`, elements: buttons }];
 }
 
 export function chunkMessage(
@@ -122,9 +126,10 @@ export function chunkMessage(
   chunk: Item[],
   final: Record<string, Final>,
   max: number,
+  open = true,
 ): SlackPayload {
   const blocks: Block[] = [context(`Access review \`${run}\` · items ${index + 1} of ${count}`)];
-  for (const item of chunk) blocks.push(...itemBlocks(run, item, final[item.key], max));
+  for (const item of chunk) blocks.push(...itemBlocks(run, item, final[item.key], max, open));
   return { text: `Access review items (${index + 1} of ${count})`, blocks };
 }
 

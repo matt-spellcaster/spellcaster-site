@@ -258,7 +258,15 @@ function refresh(review: Review): void {
         review,
         dm,
         at,
-        chunkMessage(data.run.name, n, parts.length, part, review.final, data.settings.max_text),
+        chunkMessage(
+          data.run.name,
+          n,
+          parts.length,
+          part,
+          review.final,
+          data.settings.max_text,
+          review.status === 'open',
+        ),
       );
     }
   });
