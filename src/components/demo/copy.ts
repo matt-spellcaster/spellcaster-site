@@ -14,10 +14,10 @@ export const copy = {
     'matches the tool byte for byte.',
   waiting:
     'The demo runs here once its script loads. Without JavaScript, the screenshots ' +
-    'below show the same review.',
+    'below show a full-size review.',
   broken:
     "The demo stopped, because something didn't work in this browser. The screenshots " +
-    'below show the same review.',
+    'below show a full-size review.',
   start: 'Start the review',
   startOver: 'Start over',
   stepOf: (n: number, total: number) => `Step ${n} of ${total}`,
@@ -32,8 +32,9 @@ export const copy = {
     open: {
       title: 'The review opens',
       body:
-        'The review channel gets counts only. Names and details go to your DM, the report ' +
-        'and Jira. Two people HR says have left can still get in, so their tickets are already open.',
+        'The review channel gets counts only. Names and details go to your DM, the ' +
+        'report and Jira. One person HR says has left can still get in, so their ticket is ' +
+        'already open.',
       aws:
         'EventBridge Scheduler starts the review workflow in Step Functions. A Lambda ' +
         'function reads Okta (read only) and writes the review to S3, every file hashed in a ' +

@@ -50,18 +50,18 @@ class PreCommit(unittest.TestCase):
         # 12-digit runs in each. Built at run time, so this file doesn't trip the hook it tests.
         stamp, digits = "20260918T" + "160000" + "000000Z", "1234" + "56789012"
         name = f"{stamp}-{'0' * 11}1.json"
-        self.assertEqual(self.hook({"src/data/demo/okta.json": f'"record": "{name}",\n'
+        self.assertEqual(self.hook({"src/data/demo/web.json": f'"record": "{name}",\n'
                                     f'"record_name": "{stamp}-{{n:012x}}.json"\n'}), 0)
         cases = {"an ID beside a record name": f'"{name}" owner = {digits}\n',
                  "an ID as the counter": f'"{stamp}-{digits}.json"\n',
                  "an ID in a name that isn't a record's": f'"20260918T{digits}Z.json"\n'}
         for label, text in cases.items():
             with self.subTest(label):
-                self.assertEqual(self.hook({"src/data/demo/okta.json": text}), 1)
+                self.assertEqual(self.hook({"src/data/demo/web.json": text}), 1)
 
     def test_record_names_are_set_aside_only_in_the_demo_data(self):
         name = "20260918T" + "160000" + "000000Z-" + "0" * 11 + "1.json"
-        self.assertEqual(self.hook({"tests/fixtures/demo/okta.golden.json": f'"{name}"\n'}), 0)
+        self.assertEqual(self.hook({"tests/fixtures/demo/web.golden.json": f'"{name}"\n'}), 0)
         self.assertEqual(self.hook({"src/pages/notes.txt": f'"{name}"\n'}), 1)
 
     def test_a_sha256_with_12_digits_in_a_row_passes_and_an_id_beside_it_does_not(self):
@@ -72,7 +72,7 @@ class PreCommit(unittest.TestCase):
         for label, text in {"alone": f'"{sha}"\n', "three in a row": f"{sha},{sha},{sha}\n",
                             "in the demo data too": f'"sha256": "{sha}"\n'}.items():
             with self.subTest(label):
-                self.assertEqual(self.hook({"src/data/demo/okta.json": text}), 0)
+                self.assertEqual(self.hook({"src/data/demo/web.json": text}), 0)
         cases = {"an ID beside a hash": f"{sha} owner = {digits}\n",
                  "an ID in 63 hex characters": f"{sha[:-1]}\n",
                  "an ID in 65 hex characters": f"{sha}d\n"}

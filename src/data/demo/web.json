@@ -1,0 +1,1984 @@
+{
+  "clock": {
+    "decided": "2026-09-18T16:00:00Z",
+    "opened": "2026-09-15T15:00:00Z"
+  },
+  "fix_tickets": [
+    {
+      "check_id": "AR-10",
+      "due": "2026-09-25",
+      "fields": {
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "marks": [
+                    {
+                      "type": "strong"
+                    }
+                  ],
+                  "text": "AR-10 API client with admin access: ",
+                  "type": "text"
+                },
+                {
+                  "text": "API client has admin roles: Super Administrator; write scope: okta.users.manage.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            },
+            {
+              "content": [
+                {
+                  "marks": [
+                    {
+                      "type": "strong"
+                    }
+                  ],
+                  "text": "To do: ",
+                  "type": "text"
+                },
+                {
+                  "text": "Confirm each .manage scope and admin role is needed; prefer a least-privilege custom role.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            },
+            {
+              "content": [
+                {
+                  "text": "Found in the access review 20260915T140000Z. Resolve this ticket once you have decided. This is a judgement call, so the daily check takes your word for it and does not look in Okta.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": "2026-09-25",
+        "issuetype": {
+          "name": "Sub-task"
+        },
+        "labels": [
+          "access-review",
+          "uar-key-7b56366c050b"
+        ],
+        "parent": {
+          "key": "UAR-1"
+        },
+        "project": {
+          "key": "UAR"
+        },
+        "summary": "Fix: API client with admin access — Terraform Automation"
+      },
+      "label": "uar-key-7b56366c050b",
+      "todo": "API client with admin access (AR-10) for Terraform Automation: Confirm each .manage scope and admin role is needed; prefer a least-privilege custom role.",
+      "verify": "reviewer"
+    },
+    {
+      "check_id": "AR-15",
+      "due": "2026-09-25",
+      "fields": {
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "marks": [
+                    {
+                      "type": "strong"
+                    }
+                  ],
+                  "text": "AR-15 Credential nobody is accountable for: ",
+                  "type": "text"
+                },
+                {
+                  "text": "Reporting Bot: no evidence ties this account to a person (who created an Okta API client is only read for people who have left). Holds Reporting Bot (last used 2026-09-14 (1 day ago)).",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            },
+            {
+              "content": [
+                {
+                  "marks": [
+                    {
+                      "type": "strong"
+                    }
+                  ],
+                  "text": "To do: ",
+                  "type": "text"
+                },
+                {
+                  "text": "Establish who owns this account, and revoke its credentials if nobody will own it. Record the owner in the service account register (config.service_accounts): an entry with an owner ties the account to that person, so it appears in their access review and in their departure bundle if they leave. An entry naming no owner declares the account without making anyone accountable, and is still reported here. So is one naming an owner no source evidences as a person -- a misspelled address reads as ownership and reaches nobody, which is why it is worth no more than leaving the field blank.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            },
+            {
+              "content": [
+                {
+                  "text": "Found in the access review 20260915T140000Z. Resolve this ticket once you have decided. This is a judgement call, so the daily check takes your word for it and does not look in Okta.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": "2026-09-25",
+        "issuetype": {
+          "name": "Sub-task"
+        },
+        "labels": [
+          "access-review",
+          "uar-key-5dd0ea7aba7d"
+        ],
+        "parent": {
+          "key": "UAR-1"
+        },
+        "project": {
+          "key": "UAR"
+        },
+        "summary": "Fix: Credential nobody is accountable for — okta/a05"
+      },
+      "label": "uar-key-5dd0ea7aba7d",
+      "todo": "Credential nobody is accountable for (AR-15) for okta/a05: Establish who owns this account, and revoke its credentials if nobody will own it. Record the owner in the service account register (config.service_accounts): an entry with an owner ties the account to that person, so it appears in their access review and in their departure bundle if they leave. An entry naming no owner declares the account without making anyone accountable, and is still reported here. So is one naming an owner no source evidences as a person -- a misspelled address reads as ownership and reaches nobody, which is why it is worth no more than leaving the field blank.",
+      "verify": "reviewer"
+    },
+    {
+      "check_id": "AR-18",
+      "due": "2026-09-25",
+      "fields": {
+        "description": {
+          "content": [
+            {
+              "content": [
+                {
+                  "marks": [
+                    {
+                      "type": "strong"
+                    }
+                  ],
+                  "text": "AR-18 Service account a leaver owned or held the credentials of: ",
+                  "type": "text"
+                },
+                {
+                  "text": "Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read).",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            },
+            {
+              "content": [
+                {
+                  "marks": [
+                    {
+                      "type": "strong"
+                    }
+                  ],
+                  "text": "To do: ",
+                  "type": "text"
+                },
+                {
+                  "text": "Make sure somebody still here answers for this account, and rotate every secret and key the leaver held or could have read; or decommission it: revoke its credentials and remove its access. Deactivating the leaver's own account did not touch this one. The finding says what state the account is in and what it still reaches: a live one is presumably still being called, and a deactivated one restores everything it holds the moment somebody reactivates it. Record the owner in the service account register (config.service_accounts), which ties it to that person's access review and to their departure bundle if they leave in turn.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            },
+            {
+              "content": [
+                {
+                  "text": "Found in the access review 20260915T140000Z. Resolve this ticket once you have decided. This is a judgement call, so the daily check takes your word for it and does not look in Okta.",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "doc",
+          "version": 1
+        },
+        "duedate": "2026-09-25",
+        "issuetype": {
+          "name": "Sub-task"
+        },
+        "labels": [
+          "access-review",
+          "uar-key-096432a8ce25"
+        ],
+        "parent": {
+          "key": "UAR-1"
+        },
+        "project": {
+          "key": "UAR"
+        },
+        "summary": "Fix: Service account a leaver owned or held the credentials of — okta/a04"
+      },
+      "label": "uar-key-096432a8ce25",
+      "todo": "Service account a leaver owned or held the credentials of (AR-18) for okta/a04: Make sure somebody still here answers for this account, and rotate every secret and key the leaver held or could have read; or decommission it: revoke its credentials and remove its access. Deactivating the leaver's own account did not touch this one. The finding says what state the account is in and what it still reaches: a live one is presumably still being called, and a deactivated one restores everything it holds the moment somebody reactivates it. Record the owner in the service account register (config.service_accounts), which ties it to that person's access review and to their departure bundle if they leave in turn.",
+      "verify": "reviewer"
+    }
+  ],
+  "format": 1,
+  "items": [
+    {
+      "concerns": [
+        "Can reset passwords and MFA, which lets them take over accounts.",
+        "No HR record for this ACTIVE account. (AR-03 Account has no HR record)",
+        "Has admin roles: Help Desk Administrator. Confirm this is still needed. (AR-11 Admin user)"
+      ],
+      "facts": [
+        "Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push",
+        "HR: no record · Sales",
+        "Access: Help Desk Administrator (admin role)"
+      ],
+      "key": "983af40c754bd098",
+      "kind": "admin_role",
+      "name": "Jordan Kim",
+      "outside_okta": [],
+      "outside_okta_gap": "No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+      "proposed": "decide",
+      "reason": "Admin role; confirm it is still needed.",
+      "render": {
+        "card": "*Jordan Kim* (jordan.kim@acme.example) · Admin role: *Help Desk Administrator* (role)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push\n• HR: no record · Sales\n• Access: Help Desk Administrator (admin role)\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: Can reset passwords and MFA, which lets them take over accounts.\n• :warning: No HR record for this ACTIVE account. (AR-03 Account has no HR record)\n• :warning: Has admin roles: Help Desk Administrator. Confirm this is still needed. (AR-11 Admin user)\n*Proposed: Your call.* Admin role; confirm it is still needed.",
+        "chunk": 0,
+        "concerns": [
+          null,
+          {
+            "check_id": "AR-03",
+            "severity": "high"
+          },
+          {
+            "check_id": "AR-11",
+            "severity": "info"
+          }
+        ],
+        "leaver_ticket": null,
+        "outside_okta": [],
+        "revoke": {
+          "due": "2026-09-25",
+          "fields": {
+            "description": {
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Change in Okta: ",
+                      "type": "text"
+                    },
+                    {
+                      "text": "remove the admin role Help Desk Administrator from jordan.kim@acme.example.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Okta: ",
+                      "type": "text"
+                    },
+                    {
+                      "marks": [
+                        {
+                          "attrs": {
+                            "href": "https://acme-demo-admin.okta.com/admin/user/profile/view/u04"
+                          },
+                          "type": "link"
+                        }
+                      ],
+                      "text": "open jordan.kim@acme.example in the Okta admin console",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Why: ",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: HR: no record · Sales",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: Access: Help Desk Administrator (admin role)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: Can reset passwords and MFA, which lets them take over accounts.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: No HR record for this ACTIVE account. (AR-03 Account has no HR record)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: Has admin roles: Help Desk Administrator. Confirm this is still needed. (AR-11 Admin user)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Not part of this ticket: ",
+                      "type": "text"
+                    },
+                    {
+                      "text": "Making this Okta change does not settle what is listed below, and the daily check that closes this ticket -- a fresh read of this person's Okta access -- cannot see it. Resolve this ticket on the Okta change alone.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Not known: No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Decided in the access review 20260915T140000Z and signed off by the CISO.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Review item: ",
+                      "type": "text"
+                    },
+                    {
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ],
+                      "text": "983af40c754bd098",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Resolve this ticket once done; the next daily check confirms it in Okta.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "doc",
+              "version": 1
+            },
+            "duedate": "2026-09-25",
+            "issuetype": {
+              "name": "Sub-task"
+            },
+            "labels": [
+              "access-review",
+              "uar-key-ccb16e5b9600"
+            ],
+            "parent": {
+              "key": "UAR-1"
+            },
+            "project": {
+              "key": "UAR"
+            },
+            "summary": "Revoke Help Desk Administrator for jordan.kim@acme.example"
+          },
+          "label": "uar-key-ccb16e5b9600",
+          "order": 0,
+          "todo": "Remove the admin role Help Desk Administrator from jordan.kim@acme.example.",
+          "why_if_empty": "Admin role; confirm it is still needed."
+        },
+        "signoff": [
+          "• *Jordan Kim* (jordan.kim@acme.example) · Admin role: *Help Desk Administrator* (role)",
+          "      Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push",
+          "      Access: Help Desk Administrator (admin role)",
+          "      :warning: Can reset passwords and MFA, which lets them take over accounts.",
+          "      :warning: No HR record for this ACTIVE account. (AR-03 Account has no HR record)",
+          "      :warning: Has admin roles: Help Desk Administrator. Confirm this is still needed. (AR-11 Admin user)"
+        ]
+      },
+      "reviewer": "ciso",
+      "target": "Help Desk Administrator",
+      "target_id": "Help Desk Administrator",
+      "user": "jordan.kim@acme.example",
+      "user_id": "u04",
+      "via": "role"
+    },
+    {
+      "concerns": [
+        "No HR record for this ACTIVE account. (AR-03 Account has no HR record)"
+      ],
+      "facts": [
+        "Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push",
+        "HR: no record · Sales",
+        "Access: Salesforce (through group Sales) · last used 2026-09-12"
+      ],
+      "key": "210ba3f5608dc489",
+      "kind": "app",
+      "name": "Jordan Kim",
+      "outside_okta": [],
+      "outside_okta_gap": "No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+      "proposed": "keep",
+      "reason": "Signed in 2026-09-12.",
+      "render": {
+        "card": "*Jordan Kim* (jordan.kim@acme.example) · App: *Salesforce* (via group Sales)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push\n• HR: no record · Sales\n• Access: Salesforce (through group Sales) · last used 2026-09-12\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: No HR record for this ACTIVE account. (AR-03 Account has no HR record)\n*Proposed: Keep.* Signed in 2026-09-12.",
+        "chunk": 0,
+        "concerns": [
+          {
+            "check_id": "AR-03",
+            "severity": "high"
+          }
+        ],
+        "leaver_ticket": null,
+        "outside_okta": [],
+        "revoke": {
+          "due": "2026-09-25",
+          "fields": {
+            "description": {
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Change in Okta: ",
+                      "type": "text"
+                    },
+                    {
+                      "text": "jordan.kim@acme.example gets Salesforce through the group Sales. Remove them from Sales, or change the group's app assignment, and check what else that group grants.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Okta: ",
+                      "type": "text"
+                    },
+                    {
+                      "marks": [
+                        {
+                          "attrs": {
+                            "href": "https://acme-demo-admin.okta.com/admin/user/profile/view/u04"
+                          },
+                          "type": "link"
+                        }
+                      ],
+                      "text": "open jordan.kim@acme.example in the Okta admin console",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Why: ",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: HR: no record · Sales",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: Access: Salesforce (through group Sales) · last used 2026-09-12",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: No HR record for this ACTIVE account. (AR-03 Account has no HR record)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Not part of this ticket: ",
+                      "type": "text"
+                    },
+                    {
+                      "text": "Making this Okta change does not settle what is listed below, and the daily check that closes this ticket -- a fresh read of this person's Okta access -- cannot see it. Resolve this ticket on the Okta change alone.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Not known: No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Decided in the access review 20260915T140000Z and signed off by the CISO.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Review item: ",
+                      "type": "text"
+                    },
+                    {
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ],
+                      "text": "210ba3f5608dc489",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Resolve this ticket once done; the next daily check confirms it in Okta.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "doc",
+              "version": 1
+            },
+            "duedate": "2026-09-25",
+            "issuetype": {
+              "name": "Sub-task"
+            },
+            "labels": [
+              "access-review",
+              "uar-key-eec26494b633"
+            ],
+            "parent": {
+              "key": "UAR-1"
+            },
+            "project": {
+              "key": "UAR"
+            },
+            "summary": "Revoke Salesforce for jordan.kim@acme.example"
+          },
+          "label": "uar-key-eec26494b633",
+          "order": 1,
+          "todo": "jordan.kim@acme.example gets Salesforce through the group Sales. Remove them from Sales, or change the group's app assignment, and check what else that group grants.",
+          "why_if_empty": "Signed in 2026-09-12."
+        },
+        "signoff": [
+          "• *Jordan Kim* (jordan.kim@acme.example) · App: *Salesforce* (via group Sales)",
+          "      Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push",
+          "      Access: Salesforce (through group Sales) · last used 2026-09-12",
+          "      :warning: No HR record for this ACTIVE account. (AR-03 Account has no HR record)"
+        ]
+      },
+      "reviewer": "ciso",
+      "target": "Salesforce",
+      "target_id": "a02",
+      "user": "jordan.kim@acme.example",
+      "user_id": "u04",
+      "via": "group:Sales"
+    },
+    {
+      "concerns": [
+        "No HR record for this ACTIVE account. (AR-03 Account has no HR record)"
+      ],
+      "facts": [
+        "Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push",
+        "HR: no record · Sales"
+      ],
+      "key": "714b4318ae9e2b88",
+      "kind": "hr_record",
+      "name": "Jordan Kim",
+      "outside_okta": [],
+      "outside_okta_gap": "No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+      "proposed": "decide",
+      "reason": "No HR record. Raise it with HR: add them to the roster, list them as a service account in the config, or have the account deactivated. This is handled outside the review, and no ticket is opened for it.",
+      "render": {
+        "card": "*Jordan Kim* (jordan.kim@acme.example) · *No HR record* (flag for HR; no ticket)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push\n• HR: no record · Sales\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: No HR record for this ACTIVE account. (AR-03 Account has no HR record)\n*Acknowledge that you have seen this.* No HR record. Raise it with HR: add them to the roster, list them as a service account in the config, or have the account deactivated. This is handled outside the review, and no ticket is opened for it.",
+        "chunk": 0,
+        "concerns": [
+          {
+            "check_id": "AR-03",
+            "severity": "high"
+          }
+        ],
+        "leaver_ticket": null,
+        "outside_okta": [],
+        "revoke": null,
+        "signoff": [
+          "• *Jordan Kim* (jordan.kim@acme.example) · *No HR record* (flag for HR; no ticket) — acknowledged, to be raised with HR"
+        ]
+      },
+      "reviewer": "ciso",
+      "target": "HR record",
+      "target_id": "hr-record",
+      "user": "jordan.kim@acme.example",
+      "user_id": "u04",
+      "via": "none"
+    },
+    {
+      "concerns": [
+        "HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)",
+        "Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)",
+        "2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)"
+      ],
+      "facts": [
+        "Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push",
+        "HR: employee, terminated · end date 2026-08-29 · manager Priya Shah · Engineering",
+        "Access: AWS (through group Engineering) · not used since at least 2026-06-17"
+      ],
+      "key": "f49202f2a89a806c",
+      "kind": "app",
+      "name": "Marcus Lee",
+      "outside_okta": [
+        "Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)"
+      ],
+      "outside_okta_gap": "No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+      "proposed": "revoke",
+      "reason": "HR shows they have left (2026-08-29).",
+      "render": {
+        "card": "*Marcus Lee* (marcus.lee@acme.example) · App: *AWS* (via group Engineering)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push\n• HR: employee, terminated · end date 2026-08-29 · manager Priya Shah · Engineering\n• Access: AWS (through group Engineering) · not used since at least 2026-06-17\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :warning: Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)\n• :warning: Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)\n• :warning: 2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)\n• :ticket: Leaver ticket UAR-2\n*Proposed: Revoke.* HR shows they have left (2026-08-29).",
+        "chunk": 0,
+        "concerns": [
+          {
+            "check_id": "AR-01",
+            "severity": "critical"
+          },
+          {
+            "check_id": "AR-12",
+            "severity": "critical"
+          },
+          {
+            "check_id": "AR-13",
+            "severity": "critical"
+          }
+        ],
+        "leaver_ticket": "UAR-2",
+        "outside_okta": [
+          {
+            "check_id": "AR-18",
+            "severity": "critical"
+          }
+        ],
+        "revoke": {
+          "due": "2026-09-25",
+          "fields": {
+            "description": {
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Change in Okta: ",
+                      "type": "text"
+                    },
+                    {
+                      "text": "marcus.lee@acme.example gets AWS through the group Engineering. Remove them from Engineering, or change the group's app assignment, and check what else that group grants.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Okta: ",
+                      "type": "text"
+                    },
+                    {
+                      "marks": [
+                        {
+                          "attrs": {
+                            "href": "https://acme-demo-admin.okta.com/admin/user/profile/view/u02"
+                          },
+                          "type": "link"
+                        }
+                      ],
+                      "text": "open marcus.lee@acme.example in the Okta admin console",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Why: ",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: HR: employee, terminated · end date 2026-08-29 · manager Priya Shah · Engineering",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: Access: AWS (through group Engineering) · not used since at least 2026-06-17",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: 2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Not part of this ticket: ",
+                      "type": "text"
+                    },
+                    {
+                      "text": "Making this Okta change does not settle what is listed below, and the daily check that closes this ticket -- a fresh read of this person's Okta access -- cannot see it. Resolve this ticket on the Okta change alone.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Still open: Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Each of those is tracked by its own ticket under the same review ticket.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Not known: No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Decided in the access review 20260915T140000Z and signed off by the CISO.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Review item: ",
+                      "type": "text"
+                    },
+                    {
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ],
+                      "text": "f49202f2a89a806c",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Resolve this ticket once done; the next daily check confirms it in Okta.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "doc",
+              "version": 1
+            },
+            "duedate": "2026-09-25",
+            "issuetype": {
+              "name": "Sub-task"
+            },
+            "labels": [
+              "access-review",
+              "uar-key-130380a2b8f7"
+            ],
+            "parent": {
+              "key": "UAR-1"
+            },
+            "project": {
+              "key": "UAR"
+            },
+            "summary": "Revoke AWS for marcus.lee@acme.example"
+          },
+          "label": "uar-key-130380a2b8f7",
+          "order": 2,
+          "todo": "marcus.lee@acme.example gets AWS through the group Engineering. Remove them from Engineering, or change the group's app assignment, and check what else that group grants.",
+          "why_if_empty": "HR shows they have left (2026-08-29)."
+        },
+        "signoff": [
+          "• *Marcus Lee* (marcus.lee@acme.example) · App: *AWS* (via group Engineering)",
+          "      Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push",
+          "      Access: AWS (through group Engineering) · not used since at least 2026-06-17",
+          "      :warning: not changed by this decision: Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)",
+          "      :warning: HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)",
+          "      :warning: Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)",
+          "      :warning: 2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)"
+        ]
+      },
+      "reviewer": "ciso",
+      "target": "AWS",
+      "target_id": "a03",
+      "user": "marcus.lee@acme.example",
+      "user_id": "u02",
+      "via": "group:Engineering"
+    },
+    {
+      "concerns": [
+        "HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)",
+        "Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)",
+        "2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)"
+      ],
+      "facts": [
+        "Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push",
+        "HR: employee, terminated · end date 2026-08-29 · manager Priya Shah · Engineering",
+        "Access: GitHub (through group Engineering) · last used 2026-08-28"
+      ],
+      "key": "0ab9dc3e563aec94",
+      "kind": "app",
+      "name": "Marcus Lee",
+      "outside_okta": [
+        "Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)"
+      ],
+      "outside_okta_gap": "No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+      "proposed": "revoke",
+      "reason": "HR shows they have left (2026-08-29).",
+      "render": {
+        "card": "*Marcus Lee* (marcus.lee@acme.example) · App: *GitHub* (via group Engineering)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push\n• HR: employee, terminated · end date 2026-08-29 · manager Priya Shah · Engineering\n• Access: GitHub (through group Engineering) · last used 2026-08-28\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :warning: Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)\n• :warning: Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)\n• :warning: 2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)\n• :ticket: Leaver ticket UAR-2\n*Proposed: Revoke.* HR shows they have left (2026-08-29).",
+        "chunk": 0,
+        "concerns": [
+          {
+            "check_id": "AR-01",
+            "severity": "critical"
+          },
+          {
+            "check_id": "AR-12",
+            "severity": "critical"
+          },
+          {
+            "check_id": "AR-13",
+            "severity": "critical"
+          }
+        ],
+        "leaver_ticket": "UAR-2",
+        "outside_okta": [
+          {
+            "check_id": "AR-18",
+            "severity": "critical"
+          }
+        ],
+        "revoke": {
+          "due": "2026-09-25",
+          "fields": {
+            "description": {
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Change in Okta: ",
+                      "type": "text"
+                    },
+                    {
+                      "text": "marcus.lee@acme.example gets GitHub through the group Engineering. Remove them from Engineering, or change the group's app assignment, and check what else that group grants.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Okta: ",
+                      "type": "text"
+                    },
+                    {
+                      "marks": [
+                        {
+                          "attrs": {
+                            "href": "https://acme-demo-admin.okta.com/admin/user/profile/view/u02"
+                          },
+                          "type": "link"
+                        }
+                      ],
+                      "text": "open marcus.lee@acme.example in the Okta admin console",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Why: ",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: HR: employee, terminated · end date 2026-08-29 · manager Priya Shah · Engineering",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Fact: Access: GitHub (through group Engineering) · last used 2026-08-28",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Concern: 2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ],
+                      "text": "Not part of this ticket: ",
+                      "type": "text"
+                    },
+                    {
+                      "text": "Making this Okta change does not settle what is listed below, and the daily check that closes this ticket -- a fresh read of this person's Okta access -- cannot see it. Resolve this ticket on the Okta change alone.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Still open: Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Each of those is tracked by its own ticket under the same review ticket.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Not known: No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Decided in the access review 20260915T140000Z and signed off by the CISO.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Review item: ",
+                      "type": "text"
+                    },
+                    {
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ],
+                      "text": "0ab9dc3e563aec94",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "Resolve this ticket once done; the next daily check confirms it in Okta.",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "doc",
+              "version": 1
+            },
+            "duedate": "2026-09-25",
+            "issuetype": {
+              "name": "Sub-task"
+            },
+            "labels": [
+              "access-review",
+              "uar-key-ed5eb2550853"
+            ],
+            "parent": {
+              "key": "UAR-1"
+            },
+            "project": {
+              "key": "UAR"
+            },
+            "summary": "Revoke GitHub for marcus.lee@acme.example"
+          },
+          "label": "uar-key-ed5eb2550853",
+          "order": 3,
+          "todo": "marcus.lee@acme.example gets GitHub through the group Engineering. Remove them from Engineering, or change the group's app assignment, and check what else that group grants.",
+          "why_if_empty": "HR shows they have left (2026-08-29)."
+        },
+        "signoff": [
+          "• *Marcus Lee* (marcus.lee@acme.example) · App: *GitHub* (via group Engineering)",
+          "      Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push",
+          "      Access: GitHub (through group Engineering) · last used 2026-08-28",
+          "      :warning: not changed by this decision: Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)",
+          "      :warning: HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)",
+          "      :warning: Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)",
+          "      :warning: 2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)"
+        ]
+      },
+      "reviewer": "ciso",
+      "target": "GitHub",
+      "target_id": "a01",
+      "user": "marcus.lee@acme.example",
+      "user_id": "u02",
+      "via": "group:Engineering"
+    }
+  ],
+  "open": {
+    "jira": [
+      {
+        "call": "create",
+        "fields": {
+          "description": {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "Quarterly Okta user access review for https://acme-demo.okta.com, review date 2026-09-15. Review and sign-off happen in Slack; this ticket tracks it.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "5 items to review: 1 proposed keep, 2 proposed revoke, 2 need a decision.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "INCOMPLETE: 1 data gap(s); see the report.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "Manifest SHA-256: ",
+                    "type": "text"
+                  },
+                  {
+                    "marks": [
+                      {
+                        "type": "code"
+                      }
+                    ],
+                    "text": "c07ab04da2e94d07ae92a14696b09ca090911260c1c570c15ace99d534bfd78d",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "Evidence: ",
+                    "type": "text"
+                  },
+                  {
+                    "marks": [
+                      {
+                        "type": "code"
+                      }
+                    ],
+                    "text": "s3://acme-uar-evidence/runs/20260915T140000Z/",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              }
+            ],
+            "type": "doc",
+            "version": 1
+          },
+          "duedate": "2026-09-22",
+          "issuetype": {
+            "name": "Task"
+          },
+          "labels": [
+            "access-review",
+            "uar-key-c4c179126ada",
+            "uar-2026-q3"
+          ],
+          "project": {
+            "key": "UAR"
+          },
+          "summary": "Okta Access Review 2026-Q3 (20260915T140000Z)"
+        },
+        "key": "UAR-1"
+      },
+      {
+        "call": "create",
+        "fields": {
+          "description": {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "HR shows marcus.lee@acme.example has left, but they can still get in. Fix within 24 hours.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "marks": [
+                      {
+                        "type": "strong"
+                      }
+                    ],
+                    "text": "AR-01 Terminated in HR but account still live: ",
+                    "type": "text"
+                  },
+                  {
+                    "text": "HR shows terminated on 2026-08-29; Okta status is ACTIVE.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "To do: Deactivate the Okta account and confirm app sessions are revoked.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "marks": [
+                      {
+                        "type": "strong"
+                      }
+                    ],
+                    "text": "AR-12 Leaver still holds a working credential: ",
+                    "type": "text"
+                  },
+                  {
+                    "text": "Left 2026-08-29 but still holds API token ci-deploy.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "To do: Revoke the API token. Suspending the account doesn't delete it; deactivating does. An API client secret they held is AR-18's, because rotating it is confirmed by a reviewer, not by Okta.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "marks": [
+                      {
+                        "type": "strong"
+                      }
+                    ],
+                    "text": "AR-13 Activity after the termination date: ",
+                    "type": "text"
+                  },
+                  {
+                    "text": "2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce).",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "To do: Treat as a possible incident: revoke the credential, review what it reached, and confirm the termination date with HR.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "marks": [
+                      {
+                        "type": "strong"
+                      }
+                    ],
+                    "text": "Okta: ",
+                    "type": "text"
+                  },
+                  {
+                    "marks": [
+                      {
+                        "attrs": {
+                          "href": "https://acme-demo-admin.okta.com/admin/user/profile/view/u02"
+                        },
+                        "type": "link"
+                      }
+                    ],
+                    "text": "open marcus.lee@acme.example in the Okta admin console",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "marks": [
+                      {
+                        "type": "strong"
+                      }
+                    ],
+                    "text": "Not part of this ticket: ",
+                    "type": "text"
+                  },
+                  {
+                    "text": "Closing their way in through Okta does not settle what is listed below, and the daily check that closes this ticket -- a fresh read of this person's Okta access -- cannot see it. Resolve this ticket on the Okta change alone.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "Still open: Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "Each of those is tracked by its own ticket under the same review ticket.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "Not known: No source other than Okta was read in this review, so what they hold elsewhere is not known.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              },
+              {
+                "content": [
+                  {
+                    "text": "Resolve this ticket once done; the next daily check confirms it in Okta.",
+                    "type": "text"
+                  }
+                ],
+                "type": "paragraph"
+              }
+            ],
+            "type": "doc",
+            "version": 1
+          },
+          "duedate": "2026-09-16",
+          "issuetype": {
+            "name": "Sub-task"
+          },
+          "labels": [
+            "access-review",
+            "uar-key-bf641ad40ec3"
+          ],
+          "parent": {
+            "key": "UAR-1"
+          },
+          "project": {
+            "key": "UAR"
+          },
+          "summary": "Remove access for leaver marcus.lee@acme.example"
+        },
+        "key": "UAR-2"
+      }
+    ],
+    "records": {
+      "uar-key-bf641ad40ec3.json": "{\n  \"checks\": [\n    \"AR-01\",\n    \"AR-12\",\n    \"AR-13\"\n  ],\n  \"created_at\": \"2026-09-15T15:00:00Z\",\n  \"due\": \"2026-09-16\",\n  \"issue\": \"UAR-2\",\n  \"kind\": \"leaver\",\n  \"label\": \"uar-key-bf641ad40ec3\",\n  \"outside_okta\": [\n    \"Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)\"\n  ],\n  \"run\": \"20260915T140000Z\",\n  \"subject\": \"marcus.lee@acme.example\",\n  \"todo\": \"Remove every way in through Okta for leaver marcus.lee@acme.example (account and API tokens; an API client they owned or held the secret of is AR-18's own ticket)\"\n}\n",
+      "uar-key-c4c179126ada.json": "{\n  \"created_at\": \"2026-09-15T15:00:00Z\",\n  \"issue\": \"UAR-1\",\n  \"kind\": \"parent\",\n  \"label\": \"uar-key-c4c179126ada\",\n  \"run\": \"20260915T140000Z\"\n}\n"
+    },
+    "result": {
+      "items": 5,
+      "run": "20260915T140000Z",
+      "urgent_tickets": 1
+    },
+    "slack": [
+      {
+        "call": "post",
+        "channel": "D0CISO00001",
+        "payload": {
+          "blocks": [
+            {
+              "text": {
+                "text": ":clipboard: *Okta access review `20260915T140000Z`*: you're the reviewer for all 5 items.\n1 proposed keep, 2 proposed revoke, 2 need your call.\nDue *2026-09-22*. 0 of 5 decided. Tracking ticket UAR-1.\nRevoke is proposed for direct app access with no sign-in in 90 days, and for people HR says have left. Keeping something proposed for revocation, or overriding a proposal, asks for a reason. When every item is decided, you get one message listing all of them with the *Approve review* button.",
+                "type": "mrkdwn"
+              },
+              "type": "section"
+            },
+            {
+              "block_id": "confirm",
+              "elements": [
+                {
+                  "action_id": "confirm_proposed",
+                  "confirm": {
+                    "confirm": {
+                      "text": "Confirm",
+                      "type": "plain_text"
+                    },
+                    "deny": {
+                      "text": "Cancel",
+                      "type": "plain_text"
+                    },
+                    "text": {
+                      "text": "Accept the proposed keep/revoke for 3 items. Items that need your call stay open.",
+                      "type": "mrkdwn"
+                    },
+                    "title": {
+                      "text": "Confirm proposals?",
+                      "type": "plain_text"
+                    }
+                  },
+                  "style": "primary",
+                  "text": {
+                    "text": "Confirm 3 proposed",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"r\":\"20260915T140000Z\"}"
+                }
+              ],
+              "type": "actions"
+            },
+            {
+              "elements": [
+                {
+                  "text": "Manifest SHA-256 `c07ab04da2e94d07ae92a14696b09ca090911260c1c570c15ace99d534bfd78d`",
+                  "type": "mrkdwn"
+                }
+              ],
+              "type": "context"
+            }
+          ],
+          "text": "Okta access review 20260915T140000Z: 5 items left"
+        },
+        "ts": "1758000000.000001"
+      },
+      {
+        "call": "post",
+        "channel": "D0CISO00001",
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "text": "Access review `20260915T140000Z` · items 1 of 1",
+                  "type": "mrkdwn"
+                }
+              ],
+              "type": "context"
+            },
+            {
+              "block_id": "i:983af40c754bd098",
+              "text": {
+                "text": "*Jordan Kim* (jordan.kim@acme.example) · Admin role: *Help Desk Administrator* (role)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push\n• HR: no record · Sales\n• Access: Help Desk Administrator (admin role)\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: Can reset passwords and MFA, which lets them take over accounts.\n• :warning: No HR record for this ACTIVE account. (AR-03 Account has no HR record)\n• :warning: Has admin roles: Help Desk Administrator. Confirm this is still needed. (AR-11 Admin user)\n*Proposed: Your call.* Admin role; confirm it is still needed.",
+                "type": "mrkdwn"
+              },
+              "type": "section"
+            },
+            {
+              "block_id": "a:983af40c754bd098",
+              "elements": [
+                {
+                  "action_id": "decide:keep",
+                  "text": {
+                    "text": "Keep",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"c\":0,\"k\":\"983af40c754bd098\",\"r\":\"20260915T140000Z\"}"
+                },
+                {
+                  "action_id": "decide:revoke",
+                  "text": {
+                    "text": "Revoke",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"c\":0,\"k\":\"983af40c754bd098\",\"r\":\"20260915T140000Z\"}"
+                }
+              ],
+              "type": "actions"
+            },
+            {
+              "block_id": "i:210ba3f5608dc489",
+              "text": {
+                "text": "*Jordan Kim* (jordan.kim@acme.example) · App: *Salesforce* (via group Sales)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push\n• HR: no record · Sales\n• Access: Salesforce (through group Sales) · last used 2026-09-12\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: No HR record for this ACTIVE account. (AR-03 Account has no HR record)\n*Proposed: Keep.* Signed in 2026-09-12.",
+                "type": "mrkdwn"
+              },
+              "type": "section"
+            },
+            {
+              "block_id": "a:210ba3f5608dc489",
+              "elements": [
+                {
+                  "action_id": "decide:keep",
+                  "style": "primary",
+                  "text": {
+                    "text": "Keep",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"c\":0,\"k\":\"210ba3f5608dc489\",\"r\":\"20260915T140000Z\"}"
+                },
+                {
+                  "action_id": "decide:revoke",
+                  "text": {
+                    "text": "Revoke",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"c\":0,\"k\":\"210ba3f5608dc489\",\"r\":\"20260915T140000Z\"}"
+                }
+              ],
+              "type": "actions"
+            },
+            {
+              "block_id": "i:714b4318ae9e2b88",
+              "text": {
+                "text": "*Jordan Kim* (jordan.kim@acme.example) · *No HR record* (flag for HR; no ticket)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-09-12 · MFA: push\n• HR: no record · Sales\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: No HR record for this ACTIVE account. (AR-03 Account has no HR record)\n*Acknowledge that you have seen this.* No HR record. Raise it with HR: add them to the roster, list them as a service account in the config, or have the account deactivated. This is handled outside the review, and no ticket is opened for it.",
+                "type": "mrkdwn"
+              },
+              "type": "section"
+            },
+            {
+              "block_id": "a:714b4318ae9e2b88",
+              "elements": [
+                {
+                  "action_id": "decide:keep",
+                  "style": "primary",
+                  "text": {
+                    "text": "Acknowledge",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"c\":0,\"k\":\"714b4318ae9e2b88\",\"r\":\"20260915T140000Z\"}"
+                }
+              ],
+              "type": "actions"
+            },
+            {
+              "block_id": "i:f49202f2a89a806c",
+              "text": {
+                "text": "*Marcus Lee* (marcus.lee@acme.example) · App: *AWS* (via group Engineering)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push\n• HR: employee, terminated · end date 2026-08-29 · manager Priya Shah · Engineering\n• Access: AWS (through group Engineering) · not used since at least 2026-06-17\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :warning: Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)\n• :warning: Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)\n• :warning: 2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)\n• :ticket: Leaver ticket UAR-2\n*Proposed: Revoke.* HR shows they have left (2026-08-29).",
+                "type": "mrkdwn"
+              },
+              "type": "section"
+            },
+            {
+              "block_id": "a:f49202f2a89a806c",
+              "elements": [
+                {
+                  "action_id": "decide:keep",
+                  "text": {
+                    "text": "Keep",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"c\":0,\"k\":\"f49202f2a89a806c\",\"r\":\"20260915T140000Z\"}"
+                },
+                {
+                  "action_id": "decide:revoke",
+                  "style": "danger",
+                  "text": {
+                    "text": "Revoke",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"c\":0,\"k\":\"f49202f2a89a806c\",\"r\":\"20260915T140000Z\"}"
+                }
+              ],
+              "type": "actions"
+            },
+            {
+              "block_id": "i:0ab9dc3e563aec94",
+              "text": {
+                "text": "*Marcus Lee* (marcus.lee@acme.example) · App: *GitHub* (via group Engineering)\n*Facts*\n• Okta: ACTIVE · last sign-in 2026-08-28 · MFA: push\n• HR: employee, terminated · end date 2026-08-29 · manager Priya Shah · Engineering\n• Access: GitHub (through group Engineering) · last used 2026-08-28\n*Outside this decision* — deciding this item does not change it; each of these gets its own ticket\n• :warning: Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)\n• :grey_question: No source other than Okta was read in this review, so what they hold elsewhere is not known.\n*Why it could be an issue*\n• :warning: HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)\n• :warning: Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)\n• :warning: 2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)\n• :ticket: Leaver ticket UAR-2\n*Proposed: Revoke.* HR shows they have left (2026-08-29).",
+                "type": "mrkdwn"
+              },
+              "type": "section"
+            },
+            {
+              "block_id": "a:0ab9dc3e563aec94",
+              "elements": [
+                {
+                  "action_id": "decide:keep",
+                  "text": {
+                    "text": "Keep",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"c\":0,\"k\":\"0ab9dc3e563aec94\",\"r\":\"20260915T140000Z\"}"
+                },
+                {
+                  "action_id": "decide:revoke",
+                  "style": "danger",
+                  "text": {
+                    "text": "Revoke",
+                    "type": "plain_text"
+                  },
+                  "type": "button",
+                  "value": "{\"c\":0,\"k\":\"0ab9dc3e563aec94\",\"r\":\"20260915T140000Z\"}"
+                }
+              ],
+              "type": "actions"
+            }
+          ],
+          "text": "Access review items (1 of 1)"
+        },
+        "ts": "1758000000.000002"
+      },
+      {
+        "call": "post",
+        "channel": "C0REVIEW001",
+        "payload": {
+          "blocks": [
+            {
+              "text": {
+                "text": ":clipboard: *Okta access review `20260915T140000Z` is open.* Due 2026-09-22.\n5 items to review: 1 proposed keep, 2 proposed revoke, 2 need a decision. The CISO reviews them in a DM.\nTracking ticket UAR-1. 1 urgent ticket(s) opened for people who have left.",
+                "type": "mrkdwn"
+              },
+              "type": "section"
+            },
+            {
+              "elements": [
+                {
+                  "text": ":lock: Names and details are only in the reviewer's DM, the report, and JSM.",
+                  "type": "mrkdwn"
+                }
+              ],
+              "type": "context"
+            }
+          ],
+          "text": "Okta access review 20260915T140000Z is open"
+        },
+        "ts": "1758000000.000003"
+      }
+    ]
+  },
+  "run": {
+    "check_counts": [
+      [
+        "AR-01",
+        "Terminated in HR but account still live",
+        "critical",
+        1
+      ],
+      [
+        "AR-03",
+        "Account has no HR record",
+        "high",
+        1
+      ],
+      [
+        "AR-10",
+        "API client with admin access",
+        "high",
+        1
+      ],
+      [
+        "AR-11",
+        "Admin user",
+        "info",
+        1
+      ],
+      [
+        "AR-12",
+        "Leaver still holds a working credential",
+        "critical",
+        1
+      ],
+      [
+        "AR-13",
+        "Activity after the termination date",
+        "critical",
+        1
+      ],
+      [
+        "AR-15",
+        "Credential nobody is accountable for",
+        "medium",
+        1
+      ],
+      [
+        "AR-18",
+        "Service account a leaver owned or held the credentials of",
+        "critical",
+        1
+      ]
+    ],
+    "gaps": [
+      "okta: The service account register declares 2 account(s) in okta that the read did not return: svc-ci@acme.example, svc-legacy-etl@acme.example. Each was renamed, removed, or never spelled this way, so nothing is declared by those entries."
+    ],
+    "items_sha256": "305deadf915049a1615a4a9522eb161fe071beb69336091e57b1567b8971784f",
+    "items_text": "{\"format\": 3, \"review_date\": \"2026-09-15\", \"app_unused_days\": 90, \"items\": [\n{\"key\": \"210ba3f5608dc489\", \"kind\": \"app\", \"user_id\": \"u04\", \"user\": \"jordan.kim@acme.example\", \"target_id\": \"a02\", \"target\": \"Salesforce\", \"via\": \"group:Sales\", \"proposed\": \"keep\", \"reason\": \"Signed in 2026-09-12.\", \"reviewer\": \"ciso\", \"name\": \"Jordan Kim\", \"facts\": [\"Okta: ACTIVE \\u00b7 last sign-in 2026-09-12 \\u00b7 MFA: push\", \"HR: no record \\u00b7 Sales\", \"Access: Salesforce (through group Sales) \\u00b7 last used 2026-09-12\"], \"concerns\": [\"No HR record for this ACTIVE account. (AR-03 Account has no HR record)\"], \"outside_okta\": [], \"outside_okta_gap\": \"No source other than Okta was read in this review, so what they hold elsewhere is not known.\"},\n{\"key\": \"983af40c754bd098\", \"kind\": \"admin_role\", \"user_id\": \"u04\", \"user\": \"jordan.kim@acme.example\", \"target_id\": \"Help Desk Administrator\", \"target\": \"Help Desk Administrator\", \"via\": \"role\", \"proposed\": \"decide\", \"reason\": \"Admin role; confirm it is still needed.\", \"reviewer\": \"ciso\", \"name\": \"Jordan Kim\", \"facts\": [\"Okta: ACTIVE \\u00b7 last sign-in 2026-09-12 \\u00b7 MFA: push\", \"HR: no record \\u00b7 Sales\", \"Access: Help Desk Administrator (admin role)\"], \"concerns\": [\"Can reset passwords and MFA, which lets them take over accounts.\", \"No HR record for this ACTIVE account. (AR-03 Account has no HR record)\", \"Has admin roles: Help Desk Administrator. Confirm this is still needed. (AR-11 Admin user)\"], \"outside_okta\": [], \"outside_okta_gap\": \"No source other than Okta was read in this review, so what they hold elsewhere is not known.\"},\n{\"key\": \"714b4318ae9e2b88\", \"kind\": \"hr_record\", \"user_id\": \"u04\", \"user\": \"jordan.kim@acme.example\", \"target_id\": \"hr-record\", \"target\": \"HR record\", \"via\": \"none\", \"proposed\": \"decide\", \"reason\": \"No HR record. Raise it with HR: add them to the roster, list them as a service account in the config, or have the account deactivated. This is handled outside the review, and no ticket is opened for it.\", \"reviewer\": \"ciso\", \"name\": \"Jordan Kim\", \"facts\": [\"Okta: ACTIVE \\u00b7 last sign-in 2026-09-12 \\u00b7 MFA: push\", \"HR: no record \\u00b7 Sales\"], \"concerns\": [\"No HR record for this ACTIVE account. (AR-03 Account has no HR record)\"], \"outside_okta\": [], \"outside_okta_gap\": \"No source other than Okta was read in this review, so what they hold elsewhere is not known.\"},\n{\"key\": \"0ab9dc3e563aec94\", \"kind\": \"app\", \"user_id\": \"u02\", \"user\": \"marcus.lee@acme.example\", \"target_id\": \"a01\", \"target\": \"GitHub\", \"via\": \"group:Engineering\", \"proposed\": \"revoke\", \"reason\": \"HR shows they have left (2026-08-29).\", \"reviewer\": \"ciso\", \"name\": \"Marcus Lee\", \"facts\": [\"Okta: ACTIVE \\u00b7 last sign-in 2026-08-28 \\u00b7 MFA: push\", \"HR: employee, terminated \\u00b7 end date 2026-08-29 \\u00b7 manager Priya Shah \\u00b7 Engineering\", \"Access: GitHub (through group Engineering) \\u00b7 last used 2026-08-28\"], \"concerns\": [\"HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)\", \"Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)\", \"2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)\"], \"outside_okta\": [\"Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)\"], \"outside_okta_gap\": \"No source other than Okta was read in this review, so what they hold elsewhere is not known.\"},\n{\"key\": \"f49202f2a89a806c\", \"kind\": \"app\", \"user_id\": \"u02\", \"user\": \"marcus.lee@acme.example\", \"target_id\": \"a03\", \"target\": \"AWS\", \"via\": \"group:Engineering\", \"proposed\": \"revoke\", \"reason\": \"HR shows they have left (2026-08-29).\", \"reviewer\": \"ciso\", \"name\": \"Marcus Lee\", \"facts\": [\"Okta: ACTIVE \\u00b7 last sign-in 2026-08-28 \\u00b7 MFA: push\", \"HR: employee, terminated \\u00b7 end date 2026-08-29 \\u00b7 manager Priya Shah \\u00b7 Engineering\", \"Access: AWS (through group Engineering) \\u00b7 not used since at least 2026-06-17\"], \"concerns\": [\"HR shows terminated on 2026-08-29; Okta status is ACTIVE. (AR-01 Terminated in HR but account still live)\", \"Left 2026-08-29 but still holds API token ci-deploy. (AR-12 Leaver still holds a working credential)\", \"2 sign-ins after 2026-08-29; last 2026-09-12 (Salesforce). (AR-13 Activity after the termination date)\"], \"outside_okta\": [\"Terraform Automation (ACTIVE): Marcus Lee left 2026-08-29, and the strongest evidence of who answers for this okta service account names them -- declared a service account in the review register, owned by marcus.lee@acme.example, Applies infrastructure changes from CI, last reviewed 2026-07-01. It holds the Super Administrator role and Terraform Automation (can write; use not read). (AR-18 Service account a leaver owned or held the credentials of; tied to them by a register entry someone signed up to)\"], \"outside_okta_gap\": \"No source other than Okta was read in this review, so what they hold elsewhere is not known.\"}\n]}\n",
+    "manifest_sha256": "c07ab04da2e94d07ae92a14696b09ca090911260c1c570c15ace99d534bfd78d",
+    "manifest_text": "{\n  \"tool\": \"okta-access-review 0.1.0\",\n  \"org_url\": \"https://acme-demo.okta.com\",\n  \"collected_at\": \"2026-09-15T14:00:00Z\",\n  \"review_date\": \"2026-09-15\",\n  \"config\": {\n    \"inactive_days\": 90,\n    \"never_signed_in_grace_days\": 14,\n    \"employee_only_groups\": [\n      \"Engineering\",\n      \"Finance\"\n    ],\n    \"admin_groups\": [\n      \"Okta Administrators\"\n    ],\n    \"service_accounts\": [\n      {\n        \"id\": \"svc-ci@acme.example\",\n        \"source\": \"okta\",\n        \"owner\": \"\",\n        \"purpose\": \"\",\n        \"reviewed\": \"\"\n      },\n      {\n        \"id\": \"Terraform Automation\",\n        \"source\": \"okta\",\n        \"owner\": \"marcus.lee@acme.example\",\n        \"purpose\": \"Applies infrastructure changes from CI\",\n        \"reviewed\": \"2026-07-01\"\n      },\n      {\n        \"id\": \"svc-legacy-etl@acme.example\",\n        \"source\": \"okta\",\n        \"owner\": \"marcus.lee@acme.example\",\n        \"purpose\": \"Nightly CRM extract\",\n        \"reviewed\": \"2026-07-01\"\n      },\n      {\n        \"id\": \"acme-ci-bot\",\n        \"source\": \"github:acme-eng\",\n        \"owner\": \"\",\n        \"purpose\": \"Publishes release artifacts\",\n        \"reviewed\": \"\"\n      }\n    ],\n    \"activity_lookback_days\": 90,\n    \"org_timezone\": \"America/Chicago\",\n    \"app_unused_days\": 90,\n    \"activity_exempt_apps\": [],\n    \"history_reviews\": 12,\n    \"branding\": {\n      \"name\": \"Acme\",\n      \"tagline\": \"Security & Compliance\",\n      \"primary\": \"#0B2545\",\n      \"accent\": \"#F2A541\",\n      \"footer\": \"Confidential\",\n      \"logo\": \"acme\"\n    }\n  },\n  \"roster\": {\n    \"source_name\": \"demo_roster.csv\",\n    \"copied_as\": \"roster.csv\",\n    \"rows\": 1,\n    \"sha256\": \"4ab2701f8c2172897cf6bcf3daf95859290bf81a8713da38e76f7f72e4caa6aa\"\n  },\n  \"finding_counts\": {\n    \"critical\": 4,\n    \"high\": 2,\n    \"medium\": 1,\n    \"info\": 1\n  },\n  \"skipped_checks\": [],\n  \"activity_since\": \"2026-06-17T00:00:00Z\",\n  \"app_usage_since\": \"2026-06-17T00:00:00Z\",\n  \"complete\": false,\n  \"data_gaps\": [\n    \"okta: The service account register declares 2 account(s) in okta that the read did not return: svc-ci@acme.example, svc-legacy-etl@acme.example. Each was renamed, removed, or never spelled this way, so nothing is declared by those entries.\"\n  ],\n  \"sources\": [],\n  \"history\": {\n    \"method\": \"earlier review folders in the output directory, each verified against its manifest.json\",\n    \"window\": 12,\n    \"reviews\": [],\n    \"older_reviews_not_read\": 0,\n    \"superseded_runs\": [],\n    \"skipped\": []\n  },\n  \"files\": {\n    \"access_matrix.csv\": \"383131c82e73b0f8c60d700ed9b52304ee3a46978f866a3985a1301c99dbd2ba\",\n    \"findings.csv\": \"b049925c4cafd873c0872e2f1371908c00adccba1f65d5226834d1eebdf3296b\",\n    \"report.md\": \"5b72c9551758e8683bac30034eaec2828a3528808f88b49c4fe339e7e36ba15e\",\n    \"report.pdf\": \"1776bb4f2ebbf2962743ece8c357a64cffa3bd784868bd96e0a343c74b60f336\",\n    \"review_items.json\": \"305deadf915049a1615a4a9522eb161fe071beb69336091e57b1567b8971784f\",\n    \"roster.csv\": \"4ab2701f8c2172897cf6bcf3daf95859290bf81a8713da38e76f7f72e4caa6aa\",\n    \"snapshot.json\": \"a9a2c95cbff60d58c9cab0d48debed5cdd714bf602d0c695ca579c792f91cbba\"\n  }\n}\n",
+    "name": "20260915T140000Z",
+    "pdf": {
+      "bytes": 10483,
+      "file": "web.pdf",
+      "sha256": "1776bb4f2ebbf2962743ece8c357a64cffa3bd784868bd96e0a343c74b60f336"
+    }
+  },
+  "scenarios": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+  ],
+  "settings": {
+    "channel": "C0REVIEW001",
+    "chunk": 20,
+    "ciso": "U0CISO00001",
+    "dm": "D0CISO00001",
+    "evidence_bucket": "acme-uar-evidence",
+    "jira_project": "UAR",
+    "leaver_hours": 24,
+    "max_list_sections": 40,
+    "max_text": 2900,
+    "parent_issue": "UAR-1",
+    "record_name": "20260918T160000000000Z-{n:012x}.json",
+    "review_days": 7,
+    "revoke_days": 7,
+    "task_token": "demo-task-token",
+    "ticket_revoke_days": 7
+  },
+  "source": {
+    "commit": "a9e116f2b932136194d0316272225cad91b6d831",
+    "repo": "matt-spellcaster/okta-access-review-aws",
+    "tool": "okta-access-review-aws 0.1.0",
+    "variant": "web"
+  },
+  "tampers": [
+    {
+      "file": "manifest.json",
+      "from": "4",
+      "to": "3",
+      "why": "hide one critical finding"
+    },
+    {
+      "file": "review_items.json",
+      "from": "9",
+      "to": "3",
+      "why": "change the rule the proposals followed"
+    },
+    {
+      "file": "signoff/decisions.json",
+      "from": "8",
+      "to": "7",
+      "why": "backdate a decision by a day"
+    }
+  ],
+  "variant": {
+    "failed_read": false,
+    "github": false
+  }
+}

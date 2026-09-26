@@ -5,11 +5,21 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import type { Golden } from '../../src/lib/demo/types';
+import type { DemoData, Golden } from '../../src/lib/demo/types';
 
 const CASE_STUDY = '/projects/okta-access-review-aws/';
-const golden = JSON.parse(readFileSync('tests/fixtures/demo/okta.golden.json', 'utf8')) as Golden;
+const golden = JSON.parse(readFileSync('tests/fixtures/demo/web.golden.json', 'utf8')) as Golden;
 const A = golden.scenarios['A'];
+const data = JSON.parse(readFileSync('src/data/demo/web.json', 'utf8')) as DemoData;
+// What the review holds, from its data: how many items, and how many Confirm accepts.
+const TOTAL = data.items.length;
+const PROPOSED = data.items.filter((i) => i.proposed === 'keep' || i.proposed === 'revoke').length;
+const CONFIRM = `Confirm ${PROPOSED} proposed`;
+const decided = (n: number) => `${n} of ${TOTAL} decided`;
+// A proposed revoke, to keep (which asks for a reason), and the one after it.
+const [KEPT = '', OTHER = ''] = data.items
+  .filter((i) => i.proposed === 'revoke')
+  .map((i) => `${i.name || i.user}: ${i.target}`);
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 interface Watch {
@@ -57,22 +67,22 @@ async function scenarioA(page: Page, demo: Locator): Promise<void> {
   await press(page, demo.getByRole('button', { name: 'Open your DM' }));
   await expectStep(demo, 'Decide every item');
 
-  await press(page, demo.getByRole('button', { name: 'Confirm 13 proposed' }).last());
+  await press(page, demo.getByRole('button', { name: CONFIRM }).last());
   const confirm = page.getByRole('dialog', { name: 'Confirm proposals?' });
   await expect(confirm.getByRole('button', { name: 'Cancel' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(confirm.getByRole('button', { name: 'Confirm' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(confirm).toBeHidden();
-  await expect(demo.getByText('13 of 18 decided', { exact: true })).toBeVisible();
+  await expect(demo.getByText(decided(PROPOSED), { exact: true })).toBeVisible();
 
   // What's left needs a call; decided cards have no buttons, so the first is the next one.
   // A decision takes its buttons away, and focus goes on to that next one by itself.
   const next = demo.getByRole('button', { name: /^(Keep|Acknowledge)$/ });
-  for (let n = 14; n <= 18; n++) {
+  for (let n = PROPOSED + 1; n <= TOTAL; n++) {
     await expect(next.first()).toBeFocused();
     await page.keyboard.press('Enter');
-    await expect(demo.getByText(`${n} of 18 decided`, { exact: true })).toBeVisible();
+    await expect(demo.getByText(decided(n), { exact: true })).toBeVisible();
   }
   const signOffNext = demo.getByRole('button', { name: 'Review the list and sign off' });
   await expect(signOffNext).toBeFocused();
@@ -92,7 +102,8 @@ test.describe('Be the CISO', () => {
     if (!A) throw new Error('no scenario A in the golden file');
     const { demo, watch } = await openDemo(page);
     await scenarioA(page, demo);
-    await expect(demo.getByText(`UAR-10`).first()).toBeVisible();
+    const last = A.jira.filter((c) => c.call === 'create').at(-1)?.key ?? 'none';
+    await expect(demo.getByText(last).first()).toBeVisible();
 
     await press(page, demo.getByRole('button', { name: 'Check the evidence' }));
     await expectStep(demo, 'Check the evidence');
@@ -131,7 +142,7 @@ test.describe('Be the CISO', () => {
     const { demo, watch } = await openDemo(page);
     await demo.getByRole('button', { name: 'Start the review' }).click();
     await demo.getByRole('button', { name: 'Open your DM' }).click();
-    const card = demo.getByRole('group', { name: 'Hannah Ortiz: AWS' });
+    const card = demo.getByRole('group', { name: KEPT });
     await card.getByRole('button', { name: 'Keep' }).click();
 
     const dialog = page.getByRole('dialog', { name: 'Reason needed' });
@@ -154,22 +165,22 @@ test.describe('Be the CISO', () => {
     await expect(dialog).toBeHidden();
     await expect(card).toContainText(`Keep by You (CISO) · ${reason}`);
     await expect(card.getByRole('button')).toHaveCount(0);
-    await expect(demo.getByText('1 of 18 decided', { exact: true })).toBeVisible();
+    await expect(demo.getByText(decided(1), { exact: true })).toBeVisible();
     // Focus went on to the first button of the next item below, not back to the page.
-    const order = await page.evaluate(() => {
+    const order = await page.evaluate((kept) => {
       const groups = [...document.querySelectorAll('[role="group"][data-item]')];
       const focused = document.activeElement?.closest('[role="group"]');
       return {
-        decided: groups.findIndex((g) => g.getAttribute('aria-label') === 'Hannah Ortiz: AWS'),
+        decided: groups.findIndex((g) => g.getAttribute('aria-label') === kept),
         focused: focused ? groups.indexOf(focused) : -1,
         first: focused?.querySelector('button') === document.activeElement,
       };
-    });
+    }, KEPT);
     expect(order.focused).toBe(order.decided + 1);
     expect(order.first).toBe(true);
 
     // Cancel leaves the item open.
-    const other = demo.getByRole('group', { name: 'Lee Chen: Salesforce' }).last();
+    const other = demo.getByRole('group', { name: OTHER }).last();
     await other.getByRole('button', { name: 'Keep' }).click();
     await dialog.getByRole('button', { name: 'Cancel' }).click();
     await expect(dialog).toBeHidden();
@@ -209,7 +220,7 @@ test.describe('Be the CISO', () => {
     // After Confirm, what's left is the tool's "your call" items, which need no reason; the
     // one after the first is further down the page, so focusing it has to scroll.
     const bar = demo.locator('.sticky');
-    await demo.getByRole('button', { name: 'Confirm 13 proposed' }).last().click();
+    await demo.getByRole('button', { name: CONFIRM }).last().click();
     await page.getByRole('dialog').getByRole('button', { name: 'Confirm' }).click();
     const first = demo.locator('[role="group"]:has(button)').first();
     const second = await demo
@@ -238,7 +249,7 @@ test.describe('Be the CISO', () => {
     await expect(demo.getByText(/Without JavaScript/)).toHaveCount(0);
     await demo.getByRole('button', { name: 'Start the review' }).click();
     await demo.getByRole('button', { name: 'Open your DM' }).click();
-    await demo.getByRole('button', { name: 'Confirm 13 proposed' }).last().click();
+    await demo.getByRole('button', { name: CONFIRM }).last().click();
     await page.getByRole('dialog').getByRole('button', { name: 'Confirm' }).click();
     const next = demo.getByRole('button', { name: /^(Keep|Acknowledge)$/ });
     while ((await next.count()) > 0) await next.first().click();
@@ -246,7 +257,7 @@ test.describe('Be the CISO', () => {
     await demo.getByRole('button', { name: 'Approve review' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Sign off' }).click();
     await expect(demo.getByRole('alert')).toContainText(
-      'The screenshots below show the same review.',
+      'The screenshots below show a full-size review.',
     );
     await expect(page.getByRole('dialog')).toHaveCount(0);
   });
@@ -257,7 +268,7 @@ test.describe('Be the CISO', () => {
     await demo.getByRole('button', { name: 'Start over' }).click();
     await demo.getByRole('button', { name: 'Start the review' }).click();
     await demo.getByRole('button', { name: 'Open your DM' }).click();
-    await expect(demo.getByText('0 of 18 decided', { exact: true })).toBeVisible();
+    await expect(demo.getByText(decided(0), { exact: true })).toBeVisible();
   });
 });
 
@@ -271,7 +282,7 @@ test.describe('Be the CISO, with JavaScript off', () => {
     // Start can't work without JavaScript, so it says where to look instead.
     await expect(page.getByRole('button', { name: 'Start the review' })).toBeDisabled();
     await expect(page.getByText(/Without JavaScript, the screenshots below/)).toBeVisible();
-    await page.getByText('The same review as screenshots').click();
+    await page.getByText(/A full-size review, as screenshots/).click();
     await expect(page.getByRole('img', { name: /Confirm 13 proposed/ })).toBeVisible();
   });
 });

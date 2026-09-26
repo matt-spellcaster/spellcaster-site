@@ -26,7 +26,7 @@ class FakeRun:
 
     def __init__(self, stamped=COMMIT, on_master=True, fail=None, writes=None, meddle=None, links=None):
         self.calls, self.stamped, self.on_master, self.fail = [], stamped, on_master, fail
-        self.writes = writes if writes is not None else {"okta.json": page(stamped), "okta.golden.json": b"{}\n"}
+        self.writes = writes if writes is not None else {"web.json": page(stamped), "web.golden.json": b"{}\n"}
         self.meddle = meddle  # files the export also writes into the checkout, by path
         self.links = links  # names the export writes as links, to a path
 
@@ -68,7 +68,7 @@ class Repo:
         self.tmp.cleanup()
 
 
-COMMITTED = {"src/data/demo/okta.json": page(), "tests/fixtures/demo/okta.golden.json": b"{}\n"}
+COMMITTED = {"src/data/demo/web.json": page(), "tests/fixtures/demo/web.golden.json": b"{}\n"}
 
 
 def main(argv, run, root):
@@ -86,7 +86,7 @@ class PinnedTest(unittest.TestCase):
     def test_refuses_missing_data_or_a_short_commit(self):
         with Repo() as root, self.assertRaisesRegex(demo_data.DemoDataError, "can't be read"):
             demo_data.pinned(root)
-        with Repo({"src/data/demo/okta.json": page("b4f6b8c")}) as root, \
+        with Repo({"src/data/demo/web.json": page("b4f6b8c")}) as root, \
                 self.assertRaisesRegex(demo_data.DemoDataError, "no full commit"):
             demo_data.pinned(root)
 
@@ -99,7 +99,7 @@ class ExportTest(unittest.TestCase):
     def test_clones_checks_out_and_runs_the_tools_own_export_with_its_lockfile(self):
         run = FakeRun()
         files = self.export(run)
-        self.assertEqual(set(files), {"okta.json", "okta.golden.json"})
+        self.assertEqual(set(files), {"web.json", "web.golden.json"})
         commands = [args[:4] for args, _ in run.calls]
         self.assertEqual(commands[0], ["git", "clone", "--quiet", "--no-checkout"])
         self.assertIn(f"https://github.com/{demo_data.REPO}.git", run.calls[0][0])
@@ -107,7 +107,7 @@ class ExportTest(unittest.TestCase):
         self.assertEqual(run.calls[2][0][3:], ["merge-base", "--is-ancestor", COMMIT, "origin/master"])
         uv, cwd = run.calls[3]
         self.assertEqual(uv[:4], ["uv", "run", "--frozen", "python"])
-        self.assertEqual(uv[-2:], ["--variant", "okta"])
+        self.assertEqual(uv[-2:], ["--variant", "web"])
         self.assertEqual(cwd.name, "tool")
 
     def test_can_run_the_export_in_a_container_that_sees_only_the_work_folder(self):
@@ -118,7 +118,7 @@ class ExportTest(unittest.TestCase):
             self.assertEqual(docker[:3], ["docker", "run", "--rm"])
             self.assertEqual([a for a in docker if a.startswith("/") or ":/" in a],
                              [f"{tmp}:/work", "/work/tool", "/work/out"])
-        self.assertEqual(set(files), {"okta.json", "okta.golden.json"})
+        self.assertEqual(set(files), {"web.json", "web.golden.json"})
         for flag in ("--cap-drop", "--security-opt", "--user"):
             self.assertIn(flag, docker)
         self.assertIn(demo_data.IMAGE, docker)
@@ -144,8 +144,8 @@ class ExportTest(unittest.TestCase):
     def test_stops_when_a_command_fails_or_a_file_is_missing(self):
         with self.assertRaisesRegex(demo_data.DemoDataError, "failed: boom"):
             self.export(FakeRun(fail="clone"))
-        with self.assertRaisesRegex(demo_data.DemoDataError, "wrote no okta.golden.json"):
-            self.export(FakeRun(writes={"okta.json": page()}))
+        with self.assertRaisesRegex(demo_data.DemoDataError, "wrote no web.golden.json"):
+            self.export(FakeRun(writes={"web.json": page()}))
 
     def test_refuses_an_export_stamped_with_another_commit(self):
         with self.assertRaisesRegex(demo_data.DemoDataError, "stamped"):
@@ -156,17 +156,17 @@ class ExportTest(unittest.TestCase):
             secret = Path(secret_dir) / "hosts.yml"
             secret.write_text('{"token": "not for the repository"}\n')
             with self.assertRaisesRegex(demo_data.DemoDataError, "not as a plain file"):
-                self.export(FakeRun(links={"okta.golden.json": secret}))
+                self.export(FakeRun(links={"web.golden.json": secret}))
 
     def test_refuses_an_export_that_isnt_json(self):
         with self.assertRaisesRegex(demo_data.DemoDataError, "golden.json isn't JSON"):
-            self.export(FakeRun(writes={"okta.json": page(), "okta.golden.json": b"not json"}))
+            self.export(FakeRun(writes={"web.json": page(), "web.golden.json": b"not json"}))
 
     def test_refuses_an_export_it_cannot_read(self):
         for body in (b"not json", b"{}\n", b"[]\n"):
             with self.subTest(body=body), \
                     self.assertRaisesRegex(demo_data.DemoDataError, "no source.commit|isn't JSON"):
-                self.export(FakeRun(writes={"okta.json": body, "okta.golden.json": b"{}\n"}))
+                self.export(FakeRun(writes={"web.json": body, "web.golden.json": b"{}\n"}))
 
 
 class MainTest(unittest.TestCase):
@@ -175,24 +175,24 @@ class MainTest(unittest.TestCase):
             self.assertEqual(main(["check"], FakeRun(), root), (0, ""))
 
     def test_check_fails_on_a_hand_edit_or_a_missing_file(self):
-        edited = {**COMMITTED, "src/data/demo/okta.json": page(extra="edited")}
+        edited = {**COMMITTED, "src/data/demo/web.json": page(extra="edited")}
         with Repo(edited) as root:
             code, err = main(["check"], FakeRun(), root)
         self.assertEqual(code, 1)
-        self.assertIn("src/data/demo/okta.json differs from the export", err)
+        self.assertIn("src/data/demo/web.json differs from the export", err)
         self.assertIn("never edit it by hand", err)
-        with Repo({"src/data/demo/okta.json": page()}) as root:
+        with Repo({"src/data/demo/web.json": page()}) as root:
             code, err = main(["check"], FakeRun(), root)
         self.assertEqual(code, 1)
-        self.assertIn("okta.golden.json is missing", err)
+        self.assertIn("web.golden.json is missing", err)
 
     def test_check_compares_the_files_as_committed_before_the_tool_ran(self):
-        edited = {**COMMITTED, "src/data/demo/okta.json": page(extra="edited")}
+        edited = {**COMMITTED, "src/data/demo/web.json": page(extra="edited")}
         with Repo(edited) as root:
-            fix = {root / "src/data/demo/okta.json": page()}
+            fix = {root / "src/data/demo/web.json": page()}
             code, err = main(["check"], FakeRun(meddle=fix), root)
         self.assertEqual(code, 1)
-        self.assertIn("src/data/demo/okta.json differs from the export", err)
+        self.assertIn("src/data/demo/web.json differs from the export", err)
 
     def test_check_exports_at_the_pinned_commit(self):
         run = FakeRun()
@@ -211,8 +211,8 @@ class MainTest(unittest.TestCase):
         with Repo() as root:
             code, _ = main(["sync", "--commit", COMMIT], FakeRun(), root)
             self.assertEqual(code, 0)
-            self.assertEqual((root / "src/data/demo/okta.json").read_bytes(), page())
-            self.assertEqual((root / "tests/fixtures/demo/okta.golden.json").read_bytes(), b"{}\n")
+            self.assertEqual((root / "src/data/demo/web.json").read_bytes(), page())
+            self.assertEqual((root / "tests/fixtures/demo/web.golden.json").read_bytes(), b"{}\n")
 
     def test_never_copies_a_pdf(self):
         self.assertFalse(any(name.endswith(".pdf") for name in demo_data.targets()))

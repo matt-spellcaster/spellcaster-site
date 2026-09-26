@@ -10,7 +10,7 @@ write or compare these files:
     src/data/demo/<variant>.json              what the page is built from
     tests/fixtures/demo/<variant>.golden.json  what the page's replays must equal
 
-check uses the commit the page data is stamped with (source.commit in okta.json), so the
+check uses the commit the page data is stamped with (source.commit in web.json), so the
 data can only be changed by moving the pin to another commit of the tool, never by hand.
 The commit has to be on the tool's master branch. The export's PDFs are never copied:
 the page links the sample report in the tool's repository instead.
@@ -36,7 +36,7 @@ from typing import Callable
 
 REPO = "matt-spellcaster/okta-access-review-aws"
 BRANCH = "master"
-VARIANTS = ("okta",)
+VARIANTS = ("web",)
 ROOT = Path(__file__).resolve().parents[2]
 DATA = Path("src/data/demo")
 GOLDEN = Path("tests/fixtures/demo")

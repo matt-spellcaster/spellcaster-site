@@ -18,7 +18,7 @@ import { sha256Hex } from '../../src/lib/demo/sha';
 import { chunkMessage, summaryMessage } from '../../src/lib/demo/slack';
 import { isPost, type DemoData, type Golden, type Step } from '../../src/lib/demo/types';
 
-const VARIANTS = ['okta'];
+const VARIANTS = ['web'];
 
 const load = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T;
 
