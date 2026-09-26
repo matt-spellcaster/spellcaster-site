@@ -15,6 +15,7 @@ import {
   record,
   type Review,
 } from '../../src/lib/demo/review';
+import { sections } from '../../src/lib/demo/slack';
 import { KEEP, REVOKE, type DemoData } from '../../src/lib/demo/types';
 
 const data = JSON.parse(readFileSync('src/data/demo/web.json', 'utf8')) as DemoData;
@@ -81,6 +82,51 @@ describe('the refusals the scenarios never hit', () => {
       'this review has already been signed off',
     );
     await expect(approve(signed)).rejects.toThrow('this review has already been signed off');
+  });
+});
+
+describe('a sign-off entry too long for a section', () => {
+  // The demo's form caps reasons, so no scenario reaches this; the tool clips such a line.
+  it('is clipped to the limit in code points, and the lines around it are kept', () => {
+    const max = data.settings.max_text;
+    const long = '• ' + '😀'.repeat(max);
+    const texts = sections('Keep (3)', ['• first', long, '• last'], max).map(
+      (b) => (b as { text: { text: string } }).text.text,
+    );
+    expect(texts.map((t) => Array.from(t).length).every((n) => n <= max)).toBe(true);
+    expect(texts).toEqual([
+      '*Keep (3)*\n• first',
+      Array.from(long)
+        .slice(0, max - 1)
+        .join('') + '…',
+      '• last',
+    ]);
+  });
+
+  it('keeps a line of exactly the limit and clips one over it', () => {
+    const max = data.settings.max_text;
+    const exact = '😀'.repeat(max);
+    const texts = (lines: string[]) =>
+      sections('T', lines, max).map((b) => (b as { text: { text: string } }).text.text);
+    expect(texts([exact])).toEqual(['*T*', exact]);
+    expect(texts([exact + '😀'])).toEqual(['*T*', '😀'.repeat(max - 1) + '…']);
+  });
+
+  it('clips a heading too long for a section, bold or not', () => {
+    const max = data.settings.max_text;
+    const title = '😀'.repeat(max + 1);
+    for (const bold of [true, false]) {
+      const texts = sections(title, ['• a'], max, bold).map(
+        (b) => (b as { text: { text: string } }).text.text,
+      );
+      const heading = bold ? `*${title}*` : title;
+      expect(texts).toEqual([
+        Array.from(heading)
+          .slice(0, max - 1)
+          .join('') + '…',
+        '• a',
+      ]);
+    }
   });
 });
 
