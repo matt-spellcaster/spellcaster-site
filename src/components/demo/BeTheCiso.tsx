@@ -10,6 +10,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
+import { flushSync } from 'react-dom';
 import raw from '../../data/demo/web.json';
 import {
   apply,
@@ -123,8 +124,9 @@ function ReasonForm({
       onSubmit={(e) => {
         e.preventDefault();
         const err = n > DEMO_REASON_MAX ? copy.tooLong(DEMO_REASON_MAX) : onSubmit(reason);
-        setError(err);
-        // A refused reason sends focus back to the field, even when the button was clicked.
+        // Commit the error first, so the field is invalid and described by it when it gets
+        // focus. A refused reason sends focus back to the field, even when the button was clicked.
+        flushSync(() => setError(err));
         if (err) input.current?.focus();
       }}
     >
