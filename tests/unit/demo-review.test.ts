@@ -86,7 +86,7 @@ describe('the refusals the scenarios never hit', () => {
 });
 
 describe('a sign-off entry too long for a section', () => {
-  // The demo caps reasons, so no scenario reaches this; the tool clips such a line.
+  // The demo's form caps reasons, so no scenario reaches this; the tool clips such a line.
   it('is clipped to the limit in code points, and the lines around it are kept', () => {
     const max = data.settings.max_text;
     const long = '• ' + '😀'.repeat(max);
@@ -101,6 +101,32 @@ describe('a sign-off entry too long for a section', () => {
         .join('') + '…',
       '• last',
     ]);
+  });
+
+  it('keeps a line of exactly the limit and clips one over it', () => {
+    const max = data.settings.max_text;
+    const exact = '😀'.repeat(max);
+    const texts = (lines: string[]) =>
+      sections('T', lines, max).map((b) => (b as { text: { text: string } }).text.text);
+    expect(texts([exact])).toEqual(['*T*', exact]);
+    expect(texts([exact + '😀'])).toEqual(['*T*', '😀'.repeat(max - 1) + '…']);
+  });
+
+  it('clips a heading too long for a section, bold or not', () => {
+    const max = data.settings.max_text;
+    const title = '😀'.repeat(max + 1);
+    for (const bold of [true, false]) {
+      const texts = sections(title, ['• a'], max, bold).map(
+        (b) => (b as { text: { text: string } }).text.text,
+      );
+      const heading = bold ? `*${title}*` : title;
+      expect(texts).toEqual([
+        Array.from(heading)
+          .slice(0, max - 1)
+          .join('') + '…',
+        '• a',
+      ]);
+    }
   });
 });
 
