@@ -10,6 +10,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
+import { flushSync } from 'react-dom';
 import raw from '../../data/demo/web.json';
 import {
   apply,
@@ -115,13 +116,18 @@ function ReasonForm({
 }) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null);
   const n = len(reason);
   return (
     <form
       className="mt-3 space-y-3 text-sm"
       onSubmit={(e) => {
         e.preventDefault();
-        setError(n > DEMO_REASON_MAX ? copy.tooLong(DEMO_REASON_MAX) : onSubmit(reason));
+        const err = n > DEMO_REASON_MAX ? copy.tooLong(DEMO_REASON_MAX) : onSubmit(reason);
+        // Commit the error first, so the field is invalid and described by it when it gets
+        // focus. A refused reason sends focus back to the field, even when the button was clicked.
+        flushSync(() => setError(err));
+        if (err) input.current?.focus();
       }}
     >
       <Mrkdwn
@@ -131,6 +137,7 @@ function ReasonForm({
       <label className="block">
         <span className="text-ink font-medium">{copy.reasonLabel}</span>
         <input
+          ref={input}
           type="text"
           value={reason}
           autoComplete="off"

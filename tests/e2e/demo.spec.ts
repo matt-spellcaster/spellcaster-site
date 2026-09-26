@@ -196,6 +196,26 @@ test.describe('Be the CISO', () => {
     expect(watch.problems).toEqual([]);
   });
 
+  test('a refused reason sends focus back to the field', async ({ page }) => {
+    const { demo } = await openDemo(page);
+    await demo.getByRole('button', { name: 'Start the review' }).click();
+    await demo.getByRole('button', { name: 'Open your DM' }).click();
+    await demo.getByRole('group', { name: KEPT }).getByRole('button', { name: 'Keep' }).click();
+
+    // Clicked, not Enter in the field, so focus starts on the button.
+    const dialog = page.getByRole('dialog', { name: 'Reason needed' });
+    const why = dialog.getByRole('textbox', { name: 'Why?' });
+    await dialog.getByRole('button', { name: 'Keep' }).click();
+    await expect(dialog.getByRole('alert')).toBeVisible();
+    await expect(why).toBeFocused();
+    await expect(why).toHaveAttribute('aria-invalid', 'true');
+
+    await why.fill('x'.repeat(161));
+    await dialog.getByRole('button', { name: 'Keep' }).click();
+    await expect(dialog.getByRole('alert')).toHaveText('Keep it to 160 characters here.');
+    await expect(why).toBeFocused();
+  });
+
   test('a decision can be changed from the sign-off step, as its dialog says', async ({ page }) => {
     const { demo, watch } = await openDemo(page);
     await scenarioAToSignOff(page, demo);
