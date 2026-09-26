@@ -1952,7 +1952,7 @@
     "ticket_revoke_days": 7
   },
   "source": {
-    "commit": "97738fc6413987ef3bd7383c1544828bcb5325bd",
+    "commit": "06021c5a25d34d5ddebe2e5549dd03b45abd042f",
     "repo": "matt-spellcaster/okta-access-review-aws",
     "tool": "okta-access-review-aws 0.1.0",
     "variant": "web"
