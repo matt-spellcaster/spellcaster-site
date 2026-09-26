@@ -41,8 +41,12 @@ for (const [path, h1] of PAGES) {
       await page.goto(path);
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(h1);
       await expect(page.locator('meta[http-equiv="content-security-policy"]')).toHaveCount(1);
-      // Bring each image into view and wait for it, so lazy ones load under the CSP too.
+      // Open what's folded away (the case study's screenshots), then bring each image into
+      // view and wait for it, so lazy ones load under the CSP too.
       // (A second waitForLoadState('networkidle') would return at once, without waiting.)
+      for (const summary of await page.locator('details:not([open]) > summary').all()) {
+        await summary.click();
+      }
       for (const img of await page.locator('img').all()) {
         await img.scrollIntoViewIfNeeded();
         await expect

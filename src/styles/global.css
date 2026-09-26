@@ -40,10 +40,41 @@
   color: var(--color-muted);
 }
 
+/* A disclosure's summary, drawn as flex, loses its marker: this chevron stands in for it and
+   turns down when open. */
+@utility disclosure {
+  list-style: none;
+  &::-webkit-details-marker {
+    display: none;
+  }
+  &::before {
+    content: '';
+    flex: none;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin: 0 0.75rem 0 0.125rem;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    rotate: -45deg;
+    transition: rotate 150ms;
+  }
+  details[open] > &::before {
+    rotate: 45deg;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+  }
+}
+
 :root {
   color-scheme: dark;
   /* In-page links land below the fixed header. */
   scroll-padding-top: 5rem;
+  /* A control that gets focus scrolls clear of the demo's sticky progress bar, which is two
+     rows tall on a phone. */
+  scroll-padding-bottom: 8rem;
   /* How strong the sky is drawn (the wash, the stars and the horizon), 0 to 1. */
   --sky-intensity: 0.6;
 }

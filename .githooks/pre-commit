@@ -14,17 +14,33 @@ while IFS= read -r -d '' f; do
   esac
 done < <(git -c core.quotePath=false diff --cached --name-only -z --diff-filter=d)
 # Every added line as text, whatever .gitattributes or a diff driver says about the file.
-added=$(git diff --cached -U0 --text --no-color --no-ext-diff --no-textconv | grep -E '^\+')
+added_lines() {
+  git diff --cached -U0 --text --no-color --no-ext-diff --no-textconv "$@" | grep -E '^\+'
+}
+added=$(added_lines)
 if grep -qE -e '-----BEGIN ([A-Z]+ )?PRIVATE KEY-----' <<< "$added"; then
   echo "pre-commit: staged changes contain a private key" >&2; fail=1
 fi
 # AWS account IDs stay out of this public repository (CI reads them from secrets), written
 # plain or the way the console shows them, with a dash after every four digits.
 id='(^|[^0-9])[0-9]{4}-?[0-9]{4}-?[0-9]{4}([^0-9]|$)'
-if grep -qE "$id" <<< "$added"; then
-  grep -nE "$id" <<< "$added" >&2
+# The review tool names each decision record after the moment it was written, to the
+# microsecond, and a counter (20260918T160000000000Z-000000000001.json), so the demo's data
+# is full of 12-digit runs. Only that exact shape, with a counter below 16^6, and only in the
+# demo's data, is set aside.
+demo=(src/data/demo tests/fixtures/demo)
+record='[0-9]{8}T[0-9]{12}Z-(0{6}[0-9a-f]{6}|\{n:012x\})\.json'
+scan=$(added_lines -- . "${demo[@]/#/:(exclude)}"
+       added_lines -- "${demo[@]}" | sed -E "s/$record/<record>/g")
+# A SHA-256 (64 hex characters on its own) can hold 12 digits in a row by chance. Twice,
+# because a hash that shares its separator with the one before it is skipped the first time.
+sha='(^|[^0-9a-fA-F])[0-9a-f]{64}([^0-9a-fA-F]|$)'
+scan=$(sed -E -e "s/$sha/\1<sha256>\2/g" -e "s/$sha/\1<sha256>\2/g" <<< "$scan")
+if grep -qE "$id" <<< "$scan"; then
+  grep -nE "$id" <<< "$scan" >&2
   echo "pre-commit: a staged line contains a 12-digit number (an AWS account ID?)." >&2
-  echo "            If it's safe, commit with --no-verify (which skips every check here)." >&2
+  echo "            If it's safe, commit that file on its own with --no-verify, so every other" >&2
+  echo "            file still gets every check here, the PDF check included." >&2
   fail=1
 fi
 # A PDF's text is compressed, so the scan above can't read it, and no PDF belongs here:

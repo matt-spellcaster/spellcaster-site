@@ -27,7 +27,7 @@ and open the address it prints.
 
 | Stage | What happens |
 |---|---|
-| Pull request | **Build** (dependency audit and signatures, lint, type check, unit and dist tests, build), **E2E** (Playwright + axe on Chrome, iPhone WebKit and Pixel, against the exact built artifact), **Security** (gitleaks and a no-PDFs check over the full history, zizmor, actionlint, branch-rule checks), **Terraform** (format, validate, TFLint and Checkov for every root) and **Evidence** are all required |
+| Pull request | **Build** (dependency audit and signatures, lint, type check, unit and dist tests, build), **E2E** (Playwright + axe on Chrome, iPhone WebKit and Pixel, against the exact built artifact), **Security** (gitleaks and a no-PDFs check over the full history, zizmor, actionlint, branch-rule checks), **Terraform** (format, validate, TFLint and Checkov for every root), **Demo data** (the "Be the CISO" demo is the review tool's own export at a pinned commit, byte for byte) and **Evidence** are all required |
 | Merge to `main` | The same checks, then the evidence bundle is signed with a GitHub artifact attestation |
 | Deploy production | After an approval: Terraform plans and applies `infra/envs/prod`, the exact tested build is published to S3, CloudFront's cache is cleared, and a smoke test checks the live site (the home page's hash, headers, redirects, TLS) |
 | QA, on demand | **QA up** puts a branch's tested build on `qa.spellcaster.foo` behind a password, smoke-tests it and runs Lighthouse; **QA down** (also nightly) destroys it and checks nothing is left ([docs/qa.md](docs/qa.md)) |
@@ -41,6 +41,20 @@ policies. It's applied by hand; [docs/aws.md](docs/aws.md) has the steps and
 `Environment` tag, and `scripts/ci/iam_policy_tests.py` checks what each may and may not do.
 `infra/envs/prod` is the production site (a private bucket, a CloudFront distribution and
 function, traffic alarms), applied only by CI. `infra/envs/qa` is its twin for QA.
+
+## The demo
+
+The case study's "Be the CISO" demo replays a review of the fictional Acme company in the
+browser. Its data is what the tool's own `scripts/export_demo.py` writes at one commit of
+[okta-access-review-aws](https://github.com/matt-spellcaster/okta-access-review-aws), and
+`src/lib/demo/` does what the tool does with it: the golden tests replay the tool's five
+scripted reviews and match every Slack call, Jira call, evidence record and hash. To move the
+pin to a newer commit of the tool (on the Mac: it needs git and Docker, and runs the tool's code in a
+throwaway container):
+
+```bash
+python3 -I scripts/ci/demo_data.py sync --commit <full commit of the tool>
+```
 
 `CLAUDE.md` lists the rules this repository follows (supply chain, CSP, design, and what
 never gets committed).

@@ -59,6 +59,9 @@ public: it has to read well, and nothing private goes in (rule 7), whatever the 
 | `npm run lighthouse` | Lighthouse (mobile) on every built page; reports in `test-results/lighthouse/` |
 | `node scripts/og-images.ts` | Remakes the committed social images and favicons after a design change |
 
+To pin the demo to another commit of the tool, run on the host (it needs git and Docker; the
+tool's code runs in a throwaway container): `python3 -I scripts/ci/demo_data.py sync --commit <sha>`.
+
 The Python CI helpers' tests use only the standard library, so they run on the host (CI's
 Build job runs them too): `python3 -I -m unittest discover -s tests/ci`. Keep the `-I`: it
 keeps the writable repository root off Python's import path, so a file the container wrote
@@ -73,6 +76,11 @@ Matthew applies `infra/bootstrap` (`docs/aws.md`); after any change to its CI ro
 
 - `src/pages/`, `src/layouts/`, `src/components/`, `src/styles/`: the site.
 - `src/data/site.ts`: name, pitch and links, in one place.
+- The case study's "Be the CISO" demo: `src/components/demo/` (the React island, the only one;
+  its own words are in `copy.ts`), `src/lib/demo/` (the tool's review ported to TypeScript),
+  `src/data/demo/` and `tests/fixtures/demo/` (the tool's export and its golden replays, never
+  edited by hand: `scripts/ci/demo_data.py sync` moves the pin, CI's Demo data job checks it).
+  A change to the engine has to keep `tests/unit/demo-golden.test.ts` byte for byte.
 - `src/content/projects/`: one entry per project on the home page; the featured one (`.mdx`)
   is also the case study at `/projects/<id>/`. The schema is in `src/content.config.ts`.
 - `tests/unit/` (source and repository rules), `tests/dist/` (the built `dist/`),
@@ -89,7 +97,7 @@ Matthew applies `infra/bootstrap` (`docs/aws.md`); after any change to its CI ro
   Accepted Checkov findings, each with a reason, are in `infra/.checkov.yaml`.
 - `docs/aws.md` (accounts, roles, bring-up), `docs/dns.md` (the Cloudflare records),
   `docs/qa.md` (QA: turning it on, using it, the password) and `docs/teardown.md`.
-- `.github/workflows/compliance.yml`: Build → E2E, Security, Terraform, Evidence (a SHA-256 evidence
+- `.github/workflows/compliance.yml`: Build → E2E, Security, Terraform, Demo data, Evidence (a SHA-256 evidence
   bundle), then on main Sign evidence (the only job that can mint an OIDC token today) and
   Deploy production (gated on `vars.DEPLOY_ENABLED`: plan, apply, publish the tested build,
   smoke test; `docs/aws.md` has the steps).

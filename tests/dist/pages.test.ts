@@ -178,9 +178,30 @@ describe('site files', () => {
   });
 });
 
-// The home page and the case study load no framework: no island, and at most 2 KB of
-// gzipped JavaScript (today, only the menu's few lines).
-describe.each(['index.html', 'projects/okta-access-review-aws/index.html'])('JS budget: %s', (page) => {
+function scriptBytes(html: string): number {
+  let bytes = 0;
+  for (const [, attrs = '', body = ''] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
+    if (attrs.includes('application/ld+json')) continue;
+    const src = /\bsrc="([^"]+)"/.exec(attrs)?.[1];
+    bytes += gzipSync(src ? readFileSync(join(DIST, src)) : Buffer.from(body)).length;
+  }
+  return bytes;
+}
+
+/** A module and every module it imports, by path under dist/. */
+function modules(path: string, seen = new Set<string>()): Set<string> {
+  if (seen.has(path) || !existsSync(join(DIST, path))) return seen;
+  seen.add(path);
+  const code = readFileSync(join(DIST, path), 'utf8');
+  for (const [, rel = ''] of code.matchAll(/(?:from|import)\s*"(\.\/[^"]+\.js)"/g)) {
+    modules(join(path, '..', rel), seen);
+  }
+  return seen;
+}
+
+// The home page loads no framework: no island, and at most 2 KB of gzipped JavaScript (the
+// menu's few lines).
+describe.each(['index.html', '404.html'])('JS budget: %s', (page) => {
   const html = existsSync(join(DIST, page)) ? readFileSync(join(DIST, page), 'utf8') : '';
 
   it('has no hydrated island', () => {
@@ -188,13 +209,36 @@ describe.each(['index.html', 'projects/okta-access-review-aws/index.html'])('JS 
   });
 
   it('ships at most 2 KB of gzipped JavaScript', () => {
-    let bytes = 0;
-    for (const [, attrs = '', body = ''] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
-      if (attrs.includes('application/ld+json')) continue;
-      const src = /\bsrc="([^"]+)"/.exec(attrs)?.[1];
-      bytes += gzipSync(src ? readFileSync(join(DIST, src)) : Buffer.from(body)).length;
-    }
-    expect(bytes).toBeLessThanOrEqual(2048);
+    expect(scriptBytes(html)).toBeLessThanOrEqual(2048);
+  });
+});
+
+// The case study has one island, the demo, which loads once it scrolls into view. Its
+// JavaScript (React, the engine and the tool's export) is held to what it weighed when it was
+// built, plus 15%: 99.0 KB gzipped on 2026-09-25.
+const DEMO_BUDGET = 114_000;
+
+describe('JS budget: the case study', () => {
+  const page = 'projects/okta-access-review-aws/index.html';
+  const html = existsSync(join(DIST, page)) ? readFileSync(join(DIST, page), 'utf8') : '';
+  const islands = [...html.matchAll(/<astro-island\b([^>]*)>/g)].map((m) => m[1] ?? '');
+
+  it('hydrates only the demo, and only once it is visible', () => {
+    expect(islands).toHaveLength(1);
+    expect(islands[0]).toMatch(/component-url="\/_astro\/BeTheCiso\.[\w-]+\.js"/);
+    expect(islands[0]).toContain('client="visible"');
+    // The demo imports its data rather than taking it as props, which would put the tool's
+    // text (and its dashes) into the page's HTML.
+    expect(islands[0]).toContain('props="{}"');
+  });
+
+  it(`ships at most ${DEMO_BUDGET / 1000} KB of gzipped JavaScript`, () => {
+    const urls = islands.flatMap((attrs) =>
+      [...attrs.matchAll(/(?:component|renderer)-url="\/([^"]+)"/g)].map((m) => m[1] ?? ''),
+    );
+    const all = new Set(urls.flatMap((url) => [...modules(url)]));
+    const island = [...all].reduce((n, f) => n + gzipSync(readFileSync(join(DIST, f))).length, 0);
+    expect(scriptBytes(html) + island).toBeLessThanOrEqual(DEMO_BUDGET);
   });
 });
 
@@ -220,8 +264,11 @@ describe('launch check', () => {
       ),
     );
 
-  it('no DRAFT: markers are left', () => {
-    const drafts = pages.filter((p) => readFileSync(join(DIST, p), 'utf8').includes('DRAFT:'));
+  it('no DRAFT: markers are left, in the pages or the demo', () => {
+    const scripts = files.filter((f) => f.endsWith('.js'));
+    const drafts = [...pages, ...scripts].filter((p) =>
+      readFileSync(join(DIST, p), 'utf8').includes('DRAFT:'),
+    );
     expect(drafts).toEqual([]);
   });
 

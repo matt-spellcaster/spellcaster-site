@@ -13,3 +13,6 @@ evidence/
 dist-manifest.json
 # Hidden from the dev container, so npm run format can't reach it (see eslint.config.ts).
 infra/
+# The tool's own export, byte for byte (scripts/ci/demo_data.py checks it).
+src/data/demo/
+tests/fixtures/demo/
