@@ -1,5 +1,7 @@
 /* The case study body (MDX). Hand-written rather than a typography plugin: it's one page.
-   It reads in Newsreader, like the home page; tables and code are in the UI faces. */
+   It reads in Newsreader, like the home page; tables and code are in the UI faces.
+   The demo (.demo) draws its own lists, bold, code and terminal, so the rules that reach
+   below the top level stop at it. */
 .case-study > h2 {
   margin-top: 3.5rem;
   font-size: 1.75rem;
@@ -20,13 +22,13 @@
   padding-left: 1.25rem;
   list-style: disc;
 }
-.case-study li + li {
+.case-study li:not(.demo *) + li {
   margin-top: 0.5rem;
 }
-.case-study li::marker {
+.case-study li:not(.demo *)::marker {
   color: var(--color-accent);
 }
-.case-study strong {
+.case-study strong:not(.demo *) {
   font-weight: 500;
   color: var(--color-ink);
 }
@@ -37,7 +39,7 @@
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-.case-study :not(pre) > code {
+.case-study :not(pre) > code:not(.demo *) {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.875em;
   padding: 0.1em 0.35em;
@@ -65,7 +67,7 @@
 }
 
 /* Code blocks wrap instead of scrolling sideways (a scroll box would need to be focusable). */
-.case-study pre {
+.case-study pre:not(.demo *) {
   margin-top: 1.25rem;
   padding: 1rem 1.25rem;
   border: 1px solid var(--color-line);

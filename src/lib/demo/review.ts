@@ -3,7 +3,7 @@
 // old one alone, so the page can keep it in React state. A refused action throws
 // DecisionError with the tool's own message, and changes nothing.
 
-import { checkText, dumps, len, strip } from './py';
+import { checkText, dumps, strip } from './py';
 import { sha256Hex } from './sha';
 import {
   approveMessage,
@@ -191,7 +191,8 @@ function adf(...paragraphs: (string | [string, 'strong' | 'code' | null][])[]): 
 /** Deep copy of a JSON value with SLOT replaced in every string. */
 function fill<T>(value: T, reason: string): T {
   return JSON.parse(JSON.stringify(value), (_, v: unknown) =>
-    typeof v === 'string' ? v.replaceAll(SLOT, reason) : v,
+    // A function, so a $ in the reason is never read as a replacement pattern.
+    typeof v === 'string' ? v.replaceAll(SLOT, () => reason) : v,
   ) as T;
 }
 
@@ -620,7 +621,3 @@ export function checklist(review: Review): ChecklistEntry[] {
 
 /** The reason the demo asks for: one line, at most this many characters. */
 export const DEMO_REASON_MAX = 160;
-
-export function reasonLength(text: string): number {
-  return len(text);
-}

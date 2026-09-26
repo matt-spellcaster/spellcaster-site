@@ -24,9 +24,17 @@ const EMOJI: Record<string, string> = {
 };
 
 // Code, a <…> token, an :emoji:, then *bold* and _italic_, which Slack only honours at a word
-// boundary (so config.service_accounts stays as it is).
+// boundary (so config.service_accounts stays as it is). The boundary before one is checked in
+// code, not with a lookbehind, which Safari before 16.4 can't parse at all.
 const TOKEN =
-  /(`[^`\n]+`)|(<[^<>\n]+>)|(:[a-z0-9_+-]+:)|((?<![\p{L}\p{N}])\*[^*\n]+\*(?![\p{L}\p{N}]))|((?<![\p{L}\p{N}])_[^_\n]+_(?![\p{L}\p{N}]))/gu;
+  /(`[^`\n]+`)|(<[^<>\n]+>)|(:[a-z0-9_+-]+:)|(\*[^*\n]+\*(?![\p{L}\p{N}]))|(_[^_\n]+_(?![\p{L}\p{N}]))/gu;
+const WORD = /[\p{L}\p{N}]/u;
+
+/** Whether the character before index at is a letter or a digit. */
+function wordBefore(text: string, at: number): boolean {
+  const before = Array.from(text.slice(Math.max(0, at - 2), at)).pop();
+  return before !== undefined && WORD.test(before);
+}
 
 /** Slack's three escapes, undone for display. */
 export function unescape(text: string): string {
@@ -45,10 +53,15 @@ export function inline(text: string, key = 'm'): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
   let n = 0;
-  for (const m of text.matchAll(TOKEN)) {
+  const token = new RegExp(TOKEN); // its own lastIndex: inline() calls itself for bold
+  for (let m = token.exec(text); m; m = token.exec(text)) {
     const at = m.index;
+    const [whole, code, angle, emoji, bold, italic] = m;
+    if ((bold || italic) && wordBefore(text, at)) {
+      token.lastIndex = at + 1;
+      continue;
+    }
     if (at > last) out.push(unescape(text.slice(last, at)));
-    const [token, code, angle, emoji, bold, italic] = m;
     const k = `${key}-${n++}`;
     if (code) {
       out.push(
@@ -60,7 +73,8 @@ export function inline(text: string, key = 'm'): ReactNode[] {
       out.push(<Fragment key={k}>{special(angle)}</Fragment>);
     } else if (emoji) {
       const name = emoji.slice(1, -1);
-      out.push(EMOJI[name] ? <span key={k}>{EMOJI[name]}</span> : emoji);
+      // Own names only: a reason can say :__proto__: too.
+      out.push(Object.hasOwn(EMOJI, name) ? <span key={k}>{EMOJI[name]}</span> : emoji);
     } else if (bold) {
       out.push(
         <strong key={k} className="text-ink font-semibold">
@@ -70,9 +84,9 @@ export function inline(text: string, key = 'm'): ReactNode[] {
     } else if (italic) {
       out.push(<em key={k}>{inline(italic.slice(1, -1), k)}</em>);
     } else {
-      out.push(token);
+      out.push(whole);
     }
-    last = at + token.length;
+    last = at + whole.length;
   }
   if (last < text.length) out.push(unescape(text.slice(last)));
   return out;

@@ -12,6 +12,12 @@ export const copy = {
     'Nothing here is mocked up. The review, the messages and the tickets are the output ' +
     "of the tool's own code at one commit, and this page replays them. A test checks the replay " +
     'matches the tool byte for byte.',
+  waiting:
+    'The demo runs here once its script loads. Without JavaScript, the screenshots ' +
+    'below show the same review.',
+  broken:
+    "The demo stopped, because something didn't work in this browser. The screenshots " +
+    'below show the same review.',
   start: 'Start the review',
   startOver: 'Start over',
   stepOf: (n: number, total: number) => `Step ${n} of ${total}`,

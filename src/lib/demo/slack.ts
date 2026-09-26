@@ -5,9 +5,7 @@
 import { compact, len } from './py';
 import {
   ACKNOWLEDGE_ONLY,
-  CROSS_SOURCE,
   DECIDE,
-  HR_RECORD,
   KEEP,
   REVOKE,
   type Block,
@@ -204,7 +202,7 @@ export function decisionLines(
   for (const item of items) {
     const d = final[item.key];
     if (!d) continue;
-    if (item.kind === HR_RECORD || item.kind === CROSS_SOURCE) {
+    if (ACKNOWLEDGE_ONLY.includes(item.kind)) {
       grouped[FLAGGED]?.push(item.render.signoff.join('\n'));
       continue;
     }

@@ -49,7 +49,8 @@ browser. Its data is what the tool's own `scripts/export_demo.py` writes at one 
 [okta-access-review-aws](https://github.com/matt-spellcaster/okta-access-review-aws), and
 `src/lib/demo/` does what the tool does with it: the golden tests replay the tool's five
 scripted reviews and match every Slack call, Jira call, evidence record and hash. To move the
-pin to a newer commit of the tool (on the Mac: it needs git and uv):
+pin to a newer commit of the tool (on the Mac: it needs git and Docker, and runs the tool's code in a
+throwaway container):
 
 ```bash
 python3 -I scripts/ci/demo_data.py sync --commit <full commit of the tool>

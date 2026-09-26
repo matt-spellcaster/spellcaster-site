@@ -18,19 +18,6 @@ export function cmp(a: string, b: string): number {
   return x.length - y.length;
 }
 
-/** Sort by a tuple of strings, the way Python sorts tuples. */
-export function byKeys<T>(key: (v: T) => string[]): (a: T, b: T) => number {
-  return (a, b) => {
-    const x = key(a);
-    const y = key(b);
-    for (let i = 0; i < x.length; i++) {
-      const d = cmp(x[i] ?? '', y[i] ?? '');
-      if (d) return d;
-    }
-    return 0;
-  };
-}
-
 // str.isspace(): what Python's strip() removes. Not JavaScript's trim(), which also removes
 // U+FEFF and keeps U+001C to U+001F and U+0085.
 // eslint-disable-next-line no-control-regex -- matching control characters is the point

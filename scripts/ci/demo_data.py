@@ -15,14 +15,19 @@ data can only be changed by moving the pin to another commit of the tool, never 
 The commit has to be on the tool's master branch. The export's PDFs are never copied:
 the page links the sample report in the tool's repository instead.
 
-Needs git and uv. Standard library only.
+sync runs the tool's code, and the packages its lockfile installs, in a throwaway container
+that sees only the temporary folder (CLAUDE.md rule 1 keeps third-party code off the Mac).
+check runs it directly: CI's Demo data job holds no secrets. sync needs git and Docker, check
+needs git and uv. Standard library only.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
@@ -36,6 +41,10 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA = Path("src/data/demo")
 GOLDEN = Path("tests/fixtures/demo")
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
+# uv at the version CI's Demo data job uses (a test checks), on the Python ubuntu-24.04 has.
+# Not the slim image: the export runs git to stamp the commit it came from.
+IMAGE = ("ghcr.io/astral-sh/uv:0.12.15-python3.12-trixie"
+         "@sha256:1d5bc044746ddb1fafd9c7b62bd49f1e668809d0a4e022334b9135783ec0d367")
 
 Run = Callable[..., subprocess.CompletedProcess]
 
@@ -72,8 +81,39 @@ def _run(run: Run, *args: str, cwd: Path | None = None) -> str:
     return done.stdout
 
 
-def export(commit: str, work: Path, run: Run = subprocess.run) -> dict[str, bytes]:
-    """The export's files at this commit of the tool, by name."""
+def contain(work: Path, command: list[str]) -> list[str]:
+    """command, run in a throwaway container that sees only work (at /work), as this user."""
+    return ["docker", "run", "--rm", "--pull", "missing", "--cap-drop", "ALL",
+            "--security-opt", "no-new-privileges", "--user", f"{os.getuid()}:{os.getgid()}",
+            "--env", "HOME=/tmp", "--env", "UV_CACHE_DIR=/tmp/uv", "--env", "UV_PYTHON_DOWNLOADS=never",
+            # The export runs git, which refuses a checkout mounted from outside as another's.
+            "--env", "GIT_CONFIG_COUNT=1", "--env", "GIT_CONFIG_KEY_0=safe.directory",
+            "--env", "GIT_CONFIG_VALUE_0=/work/tool",
+            "--volume", f"{work}:/work", "--workdir", "/work/tool", IMAGE, *command]
+
+
+def _read_plain(out: Path, name: str) -> bytes:
+    """A file the export wrote, only if it is a plain JSON file in out: never through a link,
+    which the tool's code could point at any file on the Mac."""
+    try:
+        if out.is_symlink():
+            raise OSError
+        fd = os.open(out / name, os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError:
+        raise DemoDataError(f"the export wrote no {name}, or not as a plain file") from None
+    with os.fdopen(fd, "rb") as f:
+        if not stat.S_ISREG(os.fstat(f.fileno()).st_mode):
+            raise DemoDataError(f"the export wrote no {name}, or not as a plain file")
+        body = f.read()
+    try:
+        json.loads(body)
+    except ValueError:
+        raise DemoDataError(f"the export's {name} isn't JSON") from None
+    return body
+
+
+def export(commit: str, work: Path, run: Run = subprocess.run, contained: bool = False) -> dict[str, bytes]:
+    """The export's files at this commit of the tool, by name. contained: run it in Docker."""
     if not COMMIT.match(commit):
         raise DemoDataError(f"not a full commit: {commit!r}")
     tool, out = work / "tool", work / "out"
@@ -83,28 +123,32 @@ def export(commit: str, work: Path, run: Run = subprocess.run) -> dict[str, byte
            capture_output=True, text=True).returncode:
         raise DemoDataError(f"{commit} is not on {REPO}'s {BRANCH} branch")
     for variant in VARIANTS:
-        _run(run, "uv", "run", "--frozen", "python", "scripts/export_demo.py", "--out", str(out),
-             "--variant", variant, cwd=tool)
-    files = {}
-    for name in targets():
-        try:
-            files[name] = (out / name).read_bytes()
-        except OSError:
-            raise DemoDataError(f"the export wrote no {name}") from None
-    stamped = json.loads(files[f"{VARIANTS[0]}.json"])["source"]["commit"]
+        command = ["uv", "run", "--frozen", "python", "scripts/export_demo.py", "--out",
+                   "/work/out" if contained else str(out), "--variant", variant]
+        _run(run, *(contain(work, command) if contained else command), cwd=tool)
+    files = {name: _read_plain(out, name) for name in targets()}
+    try:
+        stamped = json.loads(files[f"{VARIANTS[0]}.json"])["source"]["commit"]
+    except (ValueError, KeyError, TypeError):
+        raise DemoDataError(f"the export's {VARIANTS[0]}.json has no source.commit") from None
     if stamped != commit:
         raise DemoDataError(f"the export is stamped {stamped!r}, not {commit}")
     return files
 
 
-def differences(files: dict[str, bytes], root: Path = ROOT) -> list[str]:
+def committed(root: Path = ROOT) -> dict[str, bytes | None]:
+    """The committed files, by the export's name for them (None when missing)."""
+    return {name: (root / rel).read_bytes() if (root / rel).is_file() else None
+            for name, rel in targets().items()}
+
+
+def differences(files: dict[str, bytes], before: dict[str, bytes | None]) -> list[str]:
     """Each committed file that isn't byte for byte what the export wrote."""
     out = []
     for name, rel in targets().items():
-        path = root / rel
-        if not path.is_file():
+        if before[name] is None:
             out.append(f"{rel} is missing")
-        elif path.read_bytes() != files[name]:
+        elif before[name] != files[name]:
             out.append(f"{rel} differs from the export")
     return out
 
@@ -127,13 +171,15 @@ def main(argv: list[str] | None = None, run: Run = subprocess.run, root: Path = 
     args = p.parse_args(argv)
     try:
         commit = args.commit if args.command == "sync" else pinned(root)
+        # Read before the tool's code runs, so nothing it does can make the files match.
+        before = committed(root)
         with tempfile.TemporaryDirectory() as tmp:
-            files = export(commit, Path(tmp), run)
+            files = export(commit, Path(tmp), run, contained=args.command == "sync")
         if args.command == "sync":
             for rel in write(files, root):
                 print(f"wrote {rel}")
             return 0
-        problems = differences(files, root)
+        problems = differences(files, before)
     except DemoDataError as e:
         print(f"demo_data: {e}", file=sys.stderr)
         return 1

@@ -2,7 +2,14 @@
 // (src/data/demo/). The engine in src/lib/demo/ does what the tool does, byte for byte; this
 // file only draws it. Nothing here makes a network request.
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  Component,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import raw from '../../data/demo/okta.json';
 import {
   apply,
@@ -53,6 +60,10 @@ const PRIMARY =
   'bg-accent text-canvas hover:bg-ink inline-flex min-h-11 items-center rounded-lg px-4 font-sans text-sm font-medium transition-colors disabled:opacity-60';
 const SECONDARY =
   'border-line text-ink hover:bg-surface-2 inline-flex min-h-11 items-center rounded-lg border px-4 font-sans text-sm font-medium transition-colors';
+// A one-byte change: what it does, then where, stacked on a phone.
+const TAMPER =
+  'border-line text-ink hover:bg-surface-2 aria-pressed:border-revoke aria-pressed:bg-surface-2 flex min-h-11 w-full flex-col items-start gap-1 rounded-lg border px-4 py-2.5 text-left font-sans text-sm font-medium transition-colors sm:flex-row sm:items-center sm:justify-between';
+const BOX = 'demo border-line bg-canvas my-8 rounded-2xl border p-4 sm:p-6';
 
 // --- dialogs ----------------------------------------------------------------------------
 
@@ -150,10 +161,12 @@ function ReasonForm({
 
 function ConfirmForm({
   button,
+  busy,
   onConfirm,
   onCancel,
 }: {
   button: Button;
+  busy: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -166,7 +179,7 @@ function ConfirmForm({
         <button type="button" className={SECONDARY} onClick={onCancel}>
           {c.deny.text}
         </button>
-        <button type="button" className={PRIMARY} onClick={onConfirm}>
+        <button type="button" className={PRIMARY} disabled={busy} onClick={onConfirm}>
           {c.confirm.text}
         </button>
       </div>
@@ -185,7 +198,7 @@ function Aws({ text, wide }: { text: string; wide: boolean }) {
     </aside>
   ) : (
     <details className="border-line mb-4 rounded-lg border px-4 font-sans text-sm">
-      <summary className="text-ink flex min-h-11 cursor-pointer items-center font-medium">
+      <summary className="disclosure text-ink flex min-h-11 cursor-pointer items-center font-medium">
         {copy.aws}
       </summary>
       <p className="text-muted pb-3 leading-relaxed">{text}</p>
@@ -201,7 +214,7 @@ function Tickets({ calls, label }: { calls: JiraCall[]; label: string }) {
         {created.map((c) => (
           <li key={c.key}>
             <details>
-              <summary className="flex min-h-11 cursor-pointer items-center gap-2 py-2">
+              <summary className="disclosure flex min-h-11 cursor-pointer items-center gap-2 py-2">
                 <span className="text-accent font-mono text-xs">{c.key}</span>
                 <span className="text-ink min-w-0 flex-1 break-words">{c.fields.summary}</span>
                 <span className="text-muted shrink-0 text-xs">due {c.fields.duedate}</span>
@@ -229,7 +242,43 @@ function Terminal({ text, code }: { text: string; code: number }) {
 
 // --- the demo ---------------------------------------------------------------------------
 
+/** If the demo breaks, it says so and points at the screenshots, rather than going blank. */
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override render() {
+    return this.state.failed ? (
+      <div className={BOX}>
+        <p role="alert" className="text-ink/85 font-sans text-sm leading-relaxed">
+          {copy.broken}
+        </p>
+      </div>
+    ) : (
+      this.props.children
+    );
+  }
+}
+
 export default function BeTheCiso() {
+  return (
+    <Boundary>
+      <Demo />
+    </Boundary>
+  );
+}
+
+const noop = () => () => {};
+
+function Demo() {
+  // False in the server's HTML and until the island has hydrated, so Start does nothing it
+  // can't do: without JavaScript, the page points at the screenshots instead.
+  const live = useSyncExternalStore(
+    noop,
+    () => true,
+    () => false,
+  );
   const [stage, setStage] = useState<Stage>('setup');
   const [review, setReview] = useState<Review>(() => openReview(data));
   const [dialog, setDialog] = useState<Dialog | null>(null);
@@ -237,8 +286,18 @@ export default function BeTheCiso() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [checked, setChecked] = useState<{ change: Located | null; result: Checked } | null>(null);
+  // Anything but the tool's own refusal is a bug, or a browser that can't hash: the boundary
+  // above draws it, since it can't catch what an event handler throws.
+  const [crash, setCrash] = useState<{ error: unknown } | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const moved = useRef(false);
+  const dm = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  // The item just decided ('' for Confirm), for the focus to move on from.
+  const decided = useRef<string | null>(null);
+  // Sign-off and the check hash in the background. Start over, or a newer check, bumps this,
+  // so a result that lands late is dropped instead of drawn over the new state.
+  const generation = useRef(0);
 
   // Each step starts at its heading: scrolled to the top (below the fixed header, through
   // scroll-padding-top) and focused, so a screen reader starts reading there too.
@@ -247,6 +306,23 @@ export default function BeTheCiso() {
     heading.current?.scrollIntoView({ block: 'start' });
     heading.current?.focus({ preventScroll: true });
   }, [stage]);
+
+  // A decision takes its buttons away, so focus goes on to the next item below that needs
+  // one (then round to the top), or to what comes next once none do.
+  useEffect(() => {
+    const after = decided.current;
+    if (after === null) return;
+    decided.current = null;
+    const groups = [
+      ...(dm.current?.querySelectorAll<HTMLElement>('[role="group"][data-item]') ?? []),
+    ];
+    const at = groups.findIndex((g) => g.dataset['item'] === after);
+    const next =
+      [...groups.slice(at + 1), ...groups.slice(0, at + 1)]
+        .map((g) => g.querySelector<HTMLElement>('button'))
+        .find((b) => b) ?? bar.current?.querySelector<HTMLElement>('button');
+    next?.focus();
+  }, [review]);
 
   const go = (next: Stage) => {
     moved.current = true;
@@ -257,11 +333,14 @@ export default function BeTheCiso() {
   };
 
   const startOver = () => {
+    generation.current++;
     setReview(openReview(data));
     setDialog(null);
     setChecked(null);
     go('setup');
   };
+
+  if (crash) throw crash.error;
 
   const count = progress(review);
   const said = (r: Review) => copy.progress(progress(r).decided, progress(r).total);
@@ -270,6 +349,7 @@ export default function BeTheCiso() {
   const decide = (item: Item, decision: string, reason: string): string | null => {
     try {
       const next = record(review, [[item.key, decision, reason]]).review;
+      decided.current = item.key;
       setReview(next);
       setDialog(null);
       setError(null);
@@ -282,7 +362,8 @@ export default function BeTheCiso() {
       return null;
     } catch (e) {
       if (e instanceof DecisionError) return e.message;
-      throw e;
+      setCrash({ error: e });
+      return null;
     }
   };
 
@@ -302,25 +383,29 @@ export default function BeTheCiso() {
   const confirmAll = () => {
     try {
       const next = confirm(review).review;
+      decided.current = '';
       setReview(next);
       setAnnounce(`${said(next)}.`);
     } catch (e) {
-      if (!(e instanceof DecisionError)) throw e;
-      setError(e.message);
+      if (e instanceof DecisionError) setError(e.message);
+      else setCrash({ error: e });
     }
     setDialog(null);
   };
 
   const signOff = async () => {
+    const id = generation.current;
     setBusy(true);
     try {
       const next = (await approve(review)).review;
+      if (id !== generation.current) return;
       setReview(next);
       setDialog(null);
       go('done');
     } catch (e) {
-      if (!(e instanceof DecisionError)) throw e;
-      setError(e.message);
+      if (id !== generation.current) return;
+      if (e instanceof DecisionError) setError(e.message);
+      else setCrash({ error: e });
       setDialog(null);
     } finally {
       setBusy(false);
@@ -335,11 +420,19 @@ export default function BeTheCiso() {
 
   const check = async (change: Located | null) => {
     if (!review.attestation) return;
-    const result = await attest(
-      data.run.name,
-      change ? apply(files(), change) : files(),
-      review.attestation,
-    );
+    const id = ++generation.current;
+    let result: Checked;
+    try {
+      result = await attest(
+        data.run.name,
+        change ? apply(files(), change) : files(),
+        review.attestation,
+      );
+    } catch (e) {
+      if (id === generation.current) setCrash({ error: e });
+      return;
+    }
+    if (id !== generation.current) return;
     setChecked({ change, result });
     setAnnounce(result.code ? `The check failed: ${change?.why}.` : 'The check passed.');
   };
@@ -383,8 +476,11 @@ export default function BeTheCiso() {
         </h3>
         <p className="text-ink/85 text-lg leading-relaxed">{copy.intro}</p>
         <p className="text-muted mt-3 font-sans text-sm leading-relaxed">{copy.honest}</p>
+        {!live && (
+          <p className="text-muted mt-3 font-sans text-sm leading-relaxed">{copy.waiting}</p>
+        )}
         <div className="mt-5 flex flex-wrap gap-3">
-          <button type="button" className={PRIMARY} onClick={() => go('open')}>
+          <button type="button" className={PRIMARY} disabled={!live} onClick={() => go('open')}>
             {copy.start}
           </button>
           <a className={SECONDARY} href={`${REPO}/tree/${data.source.commit}`}>
@@ -421,17 +517,22 @@ export default function BeTheCiso() {
       s.body,
       s.aws,
       <>
-        <Frame badge={copy.badges.dm} title={copy.bot}>
-          {[review.summaryTs, ...review.chunkTs].map((ts) => {
-            const payload = msg(ts);
-            return payload ? (
-              <Message key={ts}>
-                <Blocks payload={payload} items={review.byKey} onAction={onAction} />
-              </Message>
-            ) : null;
-          })}
-        </Frame>
-        <div className="border-line bg-canvas sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t px-1 py-3 font-sans text-sm">
+        <div ref={dm}>
+          <Frame badge={copy.badges.dm} title={copy.bot}>
+            {[review.summaryTs, ...review.chunkTs].map((ts) => {
+              const payload = msg(ts);
+              return payload ? (
+                <Message key={ts}>
+                  <Blocks payload={payload} items={review.byKey} onAction={onAction} />
+                </Message>
+              ) : null;
+            })}
+          </Frame>
+        </div>
+        <div
+          ref={bar}
+          className="border-line bg-canvas sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t px-1 py-3 font-sans text-sm"
+        >
           <span className="text-ink font-medium">{copy.progress(count.decided, count.total)}</span>
           {left > 0 && (
             <button
@@ -504,7 +605,7 @@ export default function BeTheCiso() {
             </Message>
           </Frame>
         )}
-        <Tickets calls={review.jira} label={`${data.settings.jira_project}-1 sub-tasks`} />
+        <Tickets calls={review.jira} label={`${data.settings.parent_issue} sub-tasks`} />
         <button type="button" className={PRIMARY} onClick={() => go('evidence')}>
           {s.next}
         </button>
@@ -532,11 +633,11 @@ export default function BeTheCiso() {
                 key={c.file}
                 type="button"
                 aria-pressed={checked?.change?.file === c.file}
-                className={`${SECONDARY} justify-between text-left aria-pressed:border-revoke`}
+                className={TAMPER}
                 onClick={() => void check(c)}
               >
                 <span>{c.why}</span>
-                <span className="text-muted ml-3 font-mono text-xs">
+                <span className="text-muted font-mono text-xs sm:ml-3">
                   {c.file} byte {c.offset}: {c.from} → {c.to}
                 </span>
               </button>
@@ -575,7 +676,7 @@ export default function BeTheCiso() {
   }
 
   return (
-    <div className="border-line bg-canvas my-8 rounded-2xl border p-4 sm:p-6">
+    <div className={BOX}>
       {stage !== 'setup' && (
         <div className="border-line mb-5 flex items-center justify-between gap-3 border-b pb-3 font-sans text-sm">
           <span className="text-muted">{copy.title}</span>
@@ -615,6 +716,7 @@ export default function BeTheCiso() {
         {(dialog?.kind === 'confirm' || dialog?.kind === 'approve') && (
           <ConfirmForm
             button={dialog.button}
+            busy={busy}
             onConfirm={() => (dialog.kind === 'approve' ? void signOff() : confirmAll())}
             onCancel={() => setDialog(null)}
           />

@@ -31,9 +31,9 @@ export function Frame({
 }
 
 /** One message from the bot, as Slack lays it out. */
-export function Message({ children, label }: { children: ReactNode; label?: string }) {
+export function Message({ children }: { children: ReactNode }) {
   return (
-    <article aria-label={label} className="flex gap-3 py-2">
+    <article className="flex gap-3 py-2">
       <div
         aria-hidden="true"
         className="bg-surface-2 text-accent grid size-9 shrink-0 place-items-center rounded-lg text-xs font-semibold"
@@ -198,6 +198,7 @@ export function Blocks({
       <div
         key={i}
         role="group"
+        data-item={item.key}
         aria-label={`${item.name || item.user}: ${item.target}`}
         className={cards++ ? 'border-line mt-4 border-t pt-4' : undefined}
       >

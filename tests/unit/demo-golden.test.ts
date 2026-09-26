@@ -63,16 +63,22 @@ for (const variant of VARIANTS) {
       const [summary, ...parts] = data.open.slack
         .filter(isPost)
         .filter((c) => c.channel === data.settings.dm);
+      // The inputs come from the data, so moving the pin needs no edit here; the output is
+      // still checked against what the tool posted.
+      const due = new Date(Date.parse(data.clock.opened) + data.settings.review_days * 864e5);
+      const manifest = JSON.parse(data.run.manifest_text) as {
+        config: { app_unused_days: number };
+      };
       expect(
         summaryMessage(
           data.run.name,
           data.items,
           {},
-          '2026-09-22',
+          due.toISOString().slice(0, 10),
           data.run.manifest_sha256,
           data.settings.parent_issue,
           true,
-          90,
+          manifest.config.app_unused_days,
         ),
       ).toStrictEqual(summary?.payload);
       parts.forEach((part, n) => {
@@ -81,7 +87,7 @@ for (const variant of VARIANTS) {
           chunkMessage(data.run.name, n, parts.length, chunk, {}, data.settings.max_text),
         ).toStrictEqual(part.payload);
       });
-      expect(review.nextIssue).toBe(4);
+      expect(review.nextIssue).toBe(data.open.jira.filter((c) => c.call === 'create').length + 1);
     });
 
     for (const [name, g] of Object.entries(golden.scenarios)) {

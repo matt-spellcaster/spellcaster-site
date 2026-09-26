@@ -48,6 +48,10 @@ describe('the demo', () => {
     expect(demo.filter((f) => network.test(read(f)))).toEqual([]);
   });
 
+  it('uses no regex lookbehind, which Safari before 16.4 fails to parse, stopping the island', () => {
+    expect(demo.filter((f) => /\(\?<[=!]/.test(read(f)))).toEqual([]);
+  });
+
   it('writes its own copy with no em or en dashes (CLAUDE.md rule 6)', () => {
     // src/lib/demo/ writes the tool's text, dashes and all; the components hold the demo's own.
     const own = filesUnder('src/components/demo');

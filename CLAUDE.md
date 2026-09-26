@@ -59,8 +59,8 @@ public: it has to read well, and nothing private goes in (rule 7), whatever the 
 | `npm run lighthouse` | Lighthouse (mobile) on every built page; reports in `test-results/lighthouse/` |
 | `node scripts/og-images.ts` | Remakes the committed social images and favicons after a design change |
 
-To pin the demo to another commit of the tool, run on the host (it needs git and uv):
-`python3 -I scripts/ci/demo_data.py sync --commit <sha>`.
+To pin the demo to another commit of the tool, run on the host (it needs git and Docker; the
+tool's code runs in a throwaway container): `python3 -I scripts/ci/demo_data.py sync --commit <sha>`.
 
 The Python CI helpers' tests use only the standard library, so they run on the host (CI's
 Build job runs them too): `python3 -I -m unittest discover -s tests/ci`. Keep the `-I`: it
