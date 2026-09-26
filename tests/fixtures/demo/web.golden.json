@@ -11808,7 +11808,7 @@
     }
   },
   "source": {
-    "commit": "e9be60df7d4ce8cfa0d52b8efc00b187f3a64cf5",
+    "commit": "97738fc6413987ef3bd7383c1544828bcb5325bd",
     "repo": "matt-spellcaster/okta-access-review-aws",
     "tool": "okta-access-review-aws 0.1.0",
     "variant": "web"
