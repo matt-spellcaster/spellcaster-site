@@ -10,7 +10,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
-import raw from '../../data/demo/okta.json';
+import raw from '../../data/demo/web.json';
 import {
   apply,
   attest,

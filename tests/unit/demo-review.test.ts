@@ -17,7 +17,7 @@ import {
 } from '../../src/lib/demo/review';
 import { KEEP, REVOKE, type DemoData } from '../../src/lib/demo/types';
 
-const data = JSON.parse(readFileSync('src/data/demo/okta.json', 'utf8')) as DemoData;
+const data = JSON.parse(readFileSync('src/data/demo/web.json', 'utf8')) as DemoData;
 
 describe('a reason the visitor types', () => {
   it('goes into the revoke ticket as written, $ patterns and all', async () => {
@@ -101,9 +101,9 @@ describe("the demo's copy", () => {
     // "The run's other six files": the manifest's, less review_items.json, which is on the page.
     expect(copy.steps.evidence.scope).toContain('other six files');
     expect(Object.keys(manifest.files).length - 1).toBe(6);
-    // "Two people HR says have left ... their tickets are already open": the opening tickets,
+    // "One person HR says has left ... their ticket is already open": the opening tickets,
     // less the parent.
-    expect(copy.steps.open.body).toContain('Two people HR says have left');
-    expect(data.open.jira.filter((c) => c.call === 'create').length - 1).toBe(2);
+    expect(copy.steps.open.body).toContain('One person HR says has left');
+    expect(data.open.jira.filter((c) => c.call === 'create').length - 1).toBe(1);
   });
 });
