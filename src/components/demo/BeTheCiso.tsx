@@ -115,13 +115,17 @@ function ReasonForm({
 }) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null);
   const n = len(reason);
   return (
     <form
       className="mt-3 space-y-3 text-sm"
       onSubmit={(e) => {
         e.preventDefault();
-        setError(n > DEMO_REASON_MAX ? copy.tooLong(DEMO_REASON_MAX) : onSubmit(reason));
+        const err = n > DEMO_REASON_MAX ? copy.tooLong(DEMO_REASON_MAX) : onSubmit(reason);
+        setError(err);
+        // A refused reason sends focus back to the field, even when the button was clicked.
+        if (err) input.current?.focus();
       }}
     >
       <Mrkdwn
@@ -131,6 +135,7 @@ function ReasonForm({
       <label className="block">
         <span className="text-ink font-medium">{copy.reasonLabel}</span>
         <input
+          ref={input}
           type="text"
           value={reason}
           autoComplete="off"
