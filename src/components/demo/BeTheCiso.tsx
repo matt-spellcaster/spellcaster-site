@@ -307,8 +307,9 @@ function Demo() {
     heading.current?.focus({ preventScroll: true });
   }, [stage]);
 
-  // A decision takes its buttons away, so focus goes on to the next item below that needs
-  // one (then round to the top), or to what comes next once none do.
+  // After a decision, focus goes on to the next item below that still needs one (then round
+  // to the top), or to what comes next once none do. Decided items keep their buttons, for a
+  // change of mind, so they are skipped.
   useEffect(() => {
     const after = decided.current;
     if (after === null) return;
@@ -319,6 +320,7 @@ function Demo() {
     const at = groups.findIndex((g) => g.dataset['item'] === after);
     const next =
       [...groups.slice(at + 1), ...groups.slice(0, at + 1)]
+        .filter((g) => g.dataset['decided'] === undefined)
         .map((g) => g.querySelector<HTMLElement>('button'))
         .find((b) => b) ?? bar.current?.querySelector<HTMLElement>('button');
     next?.focus();
@@ -343,13 +345,17 @@ function Demo() {
   if (crash) throw crash.error;
 
   const count = progress(review);
+  const decisions = Object.fromEntries(
+    Object.entries(review.final).map(([key, f]) => [key, f.decision]),
+  );
   const said = (r: Review) => copy.progress(progress(r).decided, progress(r).total);
 
   /** Record one click; the tool's own refusal comes back as a message. */
   const decide = (item: Item, decision: string, reason: string): string | null => {
     try {
       const next = record(review, [[item.key, decision, reason]]).review;
-      decided.current = item.key;
+      // A first decision moves focus on to the next item; a change of mind leaves it here.
+      if (!review.final[item.key]) decided.current = item.key;
       setReview(next);
       setDialog(null);
       setError(null);
@@ -523,7 +529,12 @@ function Demo() {
               const payload = msg(ts);
               return payload ? (
                 <Message key={ts}>
-                  <Blocks payload={payload} items={review.byKey} onAction={onAction} />
+                  <Blocks
+                    payload={payload}
+                    items={review.byKey}
+                    decisions={decisions}
+                    onAction={onAction}
+                  />
                 </Message>
               ) : null;
             })}
@@ -563,16 +574,22 @@ function Demo() {
       s.title,
       s.body,
       s.aws,
-      <Frame badge={copy.badges.dm} title={copy.bot}>
-        {payload && (
-          <Message>
-            <Blocks payload={payload} onAction={onAction} disabled={busy} />
-            <p className="border-line text-muted rounded-lg border px-3 py-2 text-xs">
-              📄 {copy.pdf(`okta-access-review-${data.run.name}.pdf`)}
-            </p>
-          </Message>
-        )}
-      </Frame>,
+      <>
+        <Frame badge={copy.badges.dm} title={copy.bot}>
+          {payload && (
+            <Message>
+              <Blocks payload={payload} onAction={onAction} disabled={busy} />
+              <p className="border-line text-muted rounded-lg border px-3 py-2 text-xs">
+                📄 {copy.pdf(`okta-access-review-${data.run.name}.pdf`)}
+              </p>
+            </Message>
+          )}
+        </Frame>
+        {/* What the Approve dialog tells you to do: click an item's button again. */}
+        <button type="button" className={SECONDARY} disabled={busy} onClick={() => go('decide')}>
+          {s.back}
+        </button>
+      </>,
     );
   } else if (stage === 'done') {
     const s = copy.steps.done;

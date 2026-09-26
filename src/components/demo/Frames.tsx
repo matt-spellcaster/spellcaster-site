@@ -113,14 +113,17 @@ const STYLE = {
   plain: 'border-line text-ink',
 };
 
+/** chosen: a decided item's decision, so the button that matches it shows as pressed. */
 function Actions({
   elements,
   onAction,
   disabled,
+  chosen,
 }: {
   elements: Button[];
   onAction?: OnAction | undefined;
   disabled?: boolean | undefined;
+  chosen?: string | undefined;
 }) {
   return (
     <div className="flex flex-wrap gap-2 pt-1">
@@ -129,8 +132,9 @@ function Actions({
           key={b.action_id}
           type="button"
           disabled={disabled || !onAction}
+          aria-pressed={chosen === undefined ? undefined : b.action_id === `decide:${chosen}`}
           onClick={() => onAction?.(b)}
-          className={`hover:bg-surface-2 min-h-11 rounded-lg border px-4 text-sm font-medium transition-colors disabled:opacity-60 ${STYLE[b.style ?? 'plain']}`}
+          className={`hover:bg-surface-2 aria-pressed:bg-surface-2 min-h-11 rounded-lg border px-4 text-sm font-medium transition-colors aria-pressed:ring-1 aria-pressed:ring-current disabled:opacity-60 ${STYLE[b.style ?? 'plain']}`}
         >
           {b.text.text}
         </button>
@@ -143,10 +147,12 @@ function One({
   block,
   onAction,
   disabled,
+  chosen,
 }: {
   block: Block;
   onAction?: OnAction | undefined;
   disabled?: boolean | undefined;
+  chosen?: string | undefined;
 }) {
   if (block.type === 'divider') return <hr className="border-line" />;
   if (block.type === 'context') {
@@ -159,24 +165,29 @@ function One({
     );
   }
   if (block.type === 'actions') {
-    return <Actions elements={block.elements} onAction={onAction} disabled={disabled} />;
+    return (
+      <Actions elements={block.elements} onAction={onAction} disabled={disabled} chosen={chosen} />
+    );
   }
   return <Mrkdwn text={block.text.text} />;
 }
 
 /**
- * A message's blocks. An item's card and the block under it (its buttons, or who decided it)
- * form one group named after the person and the access, so a screen reader says which item
- * a Keep or Revoke button is for.
+ * A message's blocks. An item's card and the blocks under it (who decided it, then its
+ * buttons) form one group named after the person and the access, so a screen reader says
+ * which item a Keep or Revoke button is for. A decided item is marked data-decided, and
+ * the button for its decision (from decisions, by item key) is pressed.
  */
 export function Blocks({
   payload,
   items,
+  decisions,
   onAction,
   disabled,
 }: {
   payload: SlackPayload;
   items?: Record<string, Item>;
+  decisions?: Record<string, string>;
   onAction?: OnAction | undefined;
   disabled?: boolean;
 }) {
@@ -192,21 +203,33 @@ export function Blocks({
       drawn.push(<One key={i} block={block} onAction={onAction} disabled={disabled} />);
       continue;
     }
-    const next = blocks[i + 1];
-    const own = next && (next.type === 'context' || next.type === 'actions') ? next : undefined;
+    const own: Block[] = [];
+    for (const type of ['context', 'actions']) {
+      const next = blocks[i + 1 + own.length];
+      if (next?.type === type) own.push(next);
+    }
     drawn.push(
       <div
         key={i}
         role="group"
         data-item={item.key}
+        data-decided={own[0]?.type === 'context' ? '' : undefined}
         aria-label={`${item.name || item.user}: ${item.target}`}
         className={cards++ ? 'border-line mt-4 border-t pt-4' : undefined}
       >
         <Card item={item} />
-        {own && <One block={own} onAction={onAction} disabled={disabled} />}
+        {own.map((b, j) => (
+          <One
+            key={j}
+            block={b}
+            onAction={onAction}
+            disabled={disabled}
+            chosen={decisions?.[item.key]}
+          />
+        ))}
       </div>,
     );
-    if (own) i++;
+    i += own.length;
   }
   return <>{drawn}</>;
 }

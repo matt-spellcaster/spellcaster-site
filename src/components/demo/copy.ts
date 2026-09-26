@@ -61,6 +61,7 @@ export const copy = {
       aws:
         'Approving writes the final decisions and a sign-off record bound to two hashes: ' +
         "the manifest's and the decisions'. Then the waiting workflow picks up again.",
+      back: 'Change a decision',
     },
     done: {
       title: 'The tickets',

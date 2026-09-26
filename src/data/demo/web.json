@@ -1936,7 +1936,7 @@
   ],
   "settings": {
     "channel": "C0REVIEW001",
-    "chunk": 20,
+    "chunk": 16,
     "ciso": "U0CISO00001",
     "dm": "D0CISO00001",
     "evidence_bucket": "acme-uar-evidence",
@@ -1952,7 +1952,7 @@
     "ticket_revoke_days": 7
   },
   "source": {
-    "commit": "a9e116f2b932136194d0316272225cad91b6d831",
+    "commit": "97738fc6413987ef3bd7383c1544828bcb5325bd",
     "repo": "matt-spellcaster/okta-access-review-aws",
     "tool": "okta-access-review-aws 0.1.0",
     "variant": "web"

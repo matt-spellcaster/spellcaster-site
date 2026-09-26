@@ -62,6 +62,17 @@ async function expectStep(demo: Locator, title: string): Promise<void> {
 
 /** Scenario A, as the tool's export plays it: confirm, then keep what needs a call. */
 async function scenarioA(page: Page, demo: Locator): Promise<void> {
+  await scenarioAToSignOff(page, demo);
+  await press(page, demo.getByRole('button', { name: 'Approve review' }));
+  const signOff = page.getByRole('dialog', { name: 'Sign off this review?' });
+  await page.keyboard.press('Tab');
+  await expect(signOff.getByRole('button', { name: 'Sign off' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expectStep(demo, 'The tickets');
+}
+
+/** Scenario A up to the sign-off step. */
+async function scenarioAToSignOff(page: Page, demo: Locator): Promise<void> {
   await press(page, demo.getByRole('button', { name: 'Start the review' }));
   await expectStep(demo, 'The review opens');
   await press(page, demo.getByRole('button', { name: 'Open your DM' }));
@@ -76,9 +87,11 @@ async function scenarioA(page: Page, demo: Locator): Promise<void> {
   await expect(confirm).toBeHidden();
   await expect(demo.getByText(decided(PROPOSED), { exact: true })).toBeVisible();
 
-  // What's left needs a call; decided cards have no buttons, so the first is the next one.
-  // A decision takes its buttons away, and focus goes on to that next one by itself.
-  const next = demo.getByRole('button', { name: /^(Keep|Acknowledge)$/ });
+  // What's left needs a call. After each decision, focus goes on to the next undecided
+  // item's first button by itself (decided cards keep theirs, for a change of mind).
+  const next = demo
+    .locator('[role="group"][data-item]:not([data-decided])')
+    .getByRole('button', { name: /^(Keep|Acknowledge)$/ });
   for (let n = PROPOSED + 1; n <= TOTAL; n++) {
     await expect(next.first()).toBeFocused();
     await page.keyboard.press('Enter');
@@ -88,13 +101,6 @@ async function scenarioA(page: Page, demo: Locator): Promise<void> {
   await expect(signOffNext).toBeFocused();
   await page.keyboard.press('Enter');
   await expectStep(demo, 'Sign off');
-
-  await press(page, demo.getByRole('button', { name: 'Approve review' }));
-  const signOff = page.getByRole('dialog', { name: 'Sign off this review?' });
-  await page.keyboard.press('Tab');
-  await expect(signOff.getByRole('button', { name: 'Sign off' })).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expectStep(demo, 'The tickets');
 }
 
 test.describe('Be the CISO', () => {
@@ -164,7 +170,8 @@ test.describe('Be the CISO', () => {
     await page.keyboard.press('Enter');
     await expect(dialog).toBeHidden();
     await expect(card).toContainText(`Keep by You (CISO) · ${reason}`);
-    await expect(card.getByRole('button')).toHaveCount(0);
+    // It keeps its buttons, for a change of mind.
+    await expect(card.getByRole('button')).toHaveCount(2);
     await expect(demo.getByText(decided(1), { exact: true })).toBeVisible();
     // Focus went on to the first button of the next item below, not back to the page.
     const order = await page.evaluate((kept) => {
@@ -185,6 +192,41 @@ test.describe('Be the CISO', () => {
     await dialog.getByRole('button', { name: 'Cancel' }).click();
     await expect(dialog).toBeHidden();
     await expect(other.getByRole('button', { name: 'Keep' })).toBeVisible();
+    expect(watch.requests).toEqual([]);
+    expect(watch.problems).toEqual([]);
+  });
+
+  test('a decision can be changed from the sign-off step, as its dialog says', async ({ page }) => {
+    const { demo, watch } = await openDemo(page);
+    await scenarioAToSignOff(page, demo);
+    const approve = demo.getByRole('button', { name: 'Approve review' });
+    await expect(approve).toBeVisible();
+    await demo.getByRole('button', { name: /Change a decision$/ }).click();
+    await expectStep(demo, 'Decide every item');
+
+    // A proposed revoke, confirmed with the rest, is kept instead; that asks why.
+    const card = demo.getByRole('group', { name: OTHER }).last();
+    const keep = card.getByRole('button', { name: 'Keep' });
+    const revoke = card.getByRole('button', { name: 'Revoke' });
+    await expect(card).toContainText('Revoke by You (CISO)');
+    await expect(revoke).toHaveAttribute('aria-pressed', 'true');
+    await expect(keep).toHaveAttribute('aria-pressed', 'false');
+    // Clicking the decision it already has changes nothing, and focus stays on it.
+    await revoke.click();
+    await expect(revoke).toBeFocused();
+    await keep.click();
+    const dialog = page.getByRole('dialog', { name: 'Reason needed' });
+    await dialog.getByRole('textbox', { name: 'Why?' }).fill('Moved teams');
+    await page.keyboard.press('Enter');
+    await expect(card).toContainText('Keep by You (CISO) · Moved teams');
+    await expect(keep).toHaveAttribute('aria-pressed', 'true');
+    await expect(revoke).toHaveAttribute('aria-pressed', 'false');
+    await expect(keep).toBeFocused(); // a change of mind doesn't send focus down the page
+    await expect(demo.getByText(decided(TOTAL), { exact: true })).toBeVisible();
+
+    await demo.getByRole('button', { name: 'Review the list and sign off' }).click();
+    await expectStep(demo, 'Sign off');
+    await expect(demo.getByText(/Moved teams/)).toBeVisible(); // the list was redrawn
     expect(watch.requests).toEqual([]);
     expect(watch.problems).toEqual([]);
   });
@@ -222,11 +264,9 @@ test.describe('Be the CISO', () => {
     const bar = demo.locator('.sticky');
     await demo.getByRole('button', { name: CONFIRM }).last().click();
     await page.getByRole('dialog').getByRole('button', { name: 'Confirm' }).click();
-    const first = demo.locator('[role="group"]:has(button)').first();
-    const second = await demo
-      .locator('[role="group"]:has(button)')
-      .nth(1)
-      .getAttribute('data-item');
+    const open = demo.locator('[role="group"][data-item]:not([data-decided])');
+    const first = open.first();
+    const second = await open.nth(1).getAttribute('data-item');
     await press(page, first.getByRole('button', { name: /^(Keep|Acknowledge)$/ }));
     const focused = page.locator(`[role="group"][data-item="${second}"] button`).first();
     await expect(focused).toBeFocused();
@@ -251,7 +291,9 @@ test.describe('Be the CISO', () => {
     await demo.getByRole('button', { name: 'Open your DM' }).click();
     await demo.getByRole('button', { name: CONFIRM }).last().click();
     await page.getByRole('dialog').getByRole('button', { name: 'Confirm' }).click();
-    const next = demo.getByRole('button', { name: /^(Keep|Acknowledge)$/ });
+    const next = demo
+      .locator('[role="group"][data-item]:not([data-decided])')
+      .getByRole('button', { name: /^(Keep|Acknowledge)$/ });
     while ((await next.count()) > 0) await next.first().click();
     await demo.getByRole('button', { name: 'Review the list and sign off' }).click();
     await demo.getByRole('button', { name: 'Approve review' }).click();
