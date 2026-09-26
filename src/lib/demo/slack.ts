@@ -217,12 +217,15 @@ export function decisionLines(
   return grouped;
 }
 
-/** A titled list split into sections under Slack's size limit (lengths in code points). */
+/**
+ * A titled list split into sections under Slack's size limit (lengths in code points).
+ * A line too long for a section on its own is clipped, as the tool clips it.
+ */
 export function sections(title: string, lines: string[], max: number, bold = true): Block[] {
   const out: Block[] = [];
-  let current = bold ? `*${title}*` : title;
+  let current = clip(bold ? `*${title}*` : title, max);
   let size = len(current);
-  for (const line of lines) {
+  for (const line of lines.map((l) => clip(l, max))) {
     const n = len(line);
     if (size + 1 + n > max) {
       out.push(section(current));
